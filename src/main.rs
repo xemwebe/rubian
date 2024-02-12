@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use anyhow::Result;
+use std::path::PathBuf;
 
 use clap::Parser;
 
@@ -14,7 +14,7 @@ struct Cli {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     let file_name = cli.file;
     println!("Loading file {:?}", file_name);
 
@@ -29,9 +29,10 @@ fn main() -> Result<()> {
             println!("\nSymbol table:");
             println!("{}", elf_binary.symbols_info()?);
         }
-        _ => { println!("Not supported yet"); }
+        _ => {
+            println!("Not supported yet");
+        }
     }
 
     Ok(())
 }
-

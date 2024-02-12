@@ -87,12 +87,11 @@ impl Blob {
     }
 
     pub fn get_cstring(&self, offset: usize) -> Result<&CStr> {
-        Ok(CStr::from_bytes_until_nul(&self.data[offset..])
-            .map_err(|_| BinaryError::InvalidSliceSize)?)
+        CStr::from_bytes_until_nul(&self.data[offset..]).map_err(|_| BinaryError::InvalidSliceSize)
     }
 
     pub fn guess_file_type(&mut self) -> Result<()> {
-        if &self.data[0..4] == &[0x7f, b'E', b'L', b'F'] {
+        if self.data[0..4] == [0x7f, b'E', b'L', b'F'] {
             let elf_ident = ElfIdent::from_slice(
                 &self.data[4..16]
                     .try_into()
@@ -104,7 +103,7 @@ impl Blob {
             return Ok(());
         }
 
-        if &self.data[0..4] == &[b'M', b'Z', 0, 0] {
+        if self.data[0..4] == [b'M', b'Z', 0, 0] {
             self.bin_type = BinaryType::Pe;
             return Ok(());
         }

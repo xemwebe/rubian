@@ -1,7 +1,6 @@
 use crate::blob::{BinaryError, BinaryType, Blob};
 use std::ffi::CStr;
 use std::fmt::{self, Display};
-use std::iter::TakeWhile;
 use strum::FromRepr;
 use thiserror::Error;
 
@@ -448,9 +447,9 @@ impl<'a> ElfBinary<'a> {
     pub fn symbols_info(&mut self) -> Result<String> {
         self.get_symbols()?;
         let mut info =
-            "Nr.   | Info    | Other   | Value              | Size               | SecIdx | Name "
+            "Nr.   | Type    | Binding | Other   | Value              | Size               | SecIdx | Name "
                 .to_string();
-        info = format!("{info}\n-------+--------+---------+--------------------+--------------------+--------+---------------\n");
+        info = format!("{info}\n-------+--------+---------+---------+--------------------+--------------------+--------+---------------\n");
         for (idx, symbol) in self.symbols.iter().enumerate() {
             info = format!("{info}{idx:5} |{symbol}\n");
         }

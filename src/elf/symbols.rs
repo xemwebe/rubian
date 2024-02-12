@@ -1,25 +1,37 @@
 use std::ffi::CStr;
 use std::fmt::{self, Display};
 use strum::FromRepr;
-use thiserror::Error;
 
 use super::Result;
-use crate::blob::{BinaryType, Blob};
+use crate::blob::Blob;
 
-pub struct Symbol32 {
-    name: u32,
-    value: u32,
-    size: u32,
-    info: u8,
-    other: u8,
-    sh_idx: u16,
+#[repr(u8)]
+#[derive(Debug, FromRepr, PartialEq, Eq)]
+pub enum SymbolBinding {
+    Local = 0,
+    Global = 1,
+    Weak = 2,
+    Unknown = 0xf,
+}
+
+#[repr(u8)]
+#[derive(Debug, FromRepr, PartialEq, Eq)]
+pub enum SymbolType {
+    NoType = 0,
+    Object = 1,
+    Func = 2,
+    Section = 3,
+    File = 4,
+    Common = 5,
+    Tls = 6,
+    Unknown = 0xf,
 }
 
 pub struct Symbol64<'a> {
     // Symbol name, index in string tbl
     name: Option<&'a CStr>,
-    // Type and binding attributes
-    info: u8,
+    symbol_type: SymbolType,
+    binding: SymbolBinding,
     // No defined meaning, 0
     other: u8,
     // Associated section index
@@ -38,9 +50,13 @@ impl<'a> Symbol64<'a> {
         } else {
             Some(blob.get_cstring(name_addr)?)
         };
+        // Lower 4 bits: symbol type, upper 4 bits: symbol binding
+        let info = blob.get_u8(idx + 4)?;
+
         Ok(Self {
             name,
-            info: blob.get_u8(idx + 4)?,
+            symbol_type: SymbolType::from_repr(info & 0xf).unwrap_or(SymbolType::Unknown),
+            binding: SymbolBinding::from_repr(info >> 4).unwrap_or(SymbolBinding::Unknown),
             other: blob.get_u8(idx + 5)?,
             index: blob.get_u16(idx + 6)?,
             value: blob.get_u64(idx + 8)?,
@@ -60,7 +76,8 @@ impl<'a> Display for Symbol64<'a> {
         } else {
             "*unnamed*".to_string()
         };
-        write!(f, " {:7}", self.info)?;
+        write!(f, " {:7}", format!("{:?}", self.symbol_type))?;
+        write!(f, " | {:7}", format!("{:?}", self.binding))?;
         write!(f, " | {:7}", self.other)?;
         write!(f, " | 0x{:016x}", self.value)?;
         write!(f, " | 0x{:016x}", self.size)?;
