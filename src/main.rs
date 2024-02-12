@@ -28,6 +28,8 @@ fn main() -> Result<()> {
             println!("{}", elf_binary.section_headers_info()?);
             println!("\nSymbol table:");
             println!("{}", elf_binary.symbols_info()?);
+            println!("\nDynamic symbol table:");
+            println!("{}", elf_binary.dyn_symbols_info()?);
         }
         _ => {
             println!("Not supported yet");

@@ -407,6 +407,7 @@ pub struct ElfBinary<'a> {
     header: ElfHeader,
     section_headers: Vec<SectionHeader<'a>>,
     symbols: Vec<Symbol64<'a>>,
+    dyn_symbols: Vec<Symbol64<'a>>,
     header_string_table_offset: usize,
 }
 
@@ -426,6 +427,7 @@ impl<'a> ElfBinary<'a> {
             header,
             section_headers: Vec::new(),
             symbols: Vec::new(),
+            dyn_symbols: Vec::new(),
             header_string_table_offset,
         })
     }
@@ -456,6 +458,18 @@ impl<'a> ElfBinary<'a> {
         Ok(info)
     }
 
+    pub fn dyn_symbols_info(&mut self) -> Result<String> {
+        self.get_dyn_symbols()?;
+        let mut info =
+            "Nr.   | Type    | Binding | Other   | Value              | Size               | SecIdx | Name "
+                .to_string();
+        info = format!("{info}\n-------+--------+---------+---------+--------------------+--------------------+--------+---------------\n");
+        for (idx, symbol) in self.dyn_symbols.iter().enumerate() {
+            info = format!("{info}{idx:5} |{symbol}\n");
+        }
+        Ok(info)
+    }
+
     fn get_sections(&mut self) -> Result<()> {
         if self.section_headers.is_empty() {
             let mut idx = self.header.shoff as usize;
@@ -471,11 +485,11 @@ impl<'a> ElfBinary<'a> {
         Ok(())
     }
 
-    fn get_string_table_offset(&mut self) -> Result<Option<usize>> {
+    fn get_section_offset(&mut self, section_name: &str) -> Result<Option<usize>> {
         self.get_sections()?;
         for section in &self.section_headers {
             if let Some(name) = section.name {
-                if name.to_bytes() == b".strtab" {
+                if name.to_bytes() == section_name.as_bytes() {
                     return Ok(Some(section.offset as usize));
                 }
             }
@@ -486,15 +500,37 @@ impl<'a> ElfBinary<'a> {
     fn get_symbols(&mut self) -> Result<()> {
         self.get_sections()?;
         if self.symbols.is_empty() {
-            if let Some(string_table_offset) = self.get_string_table_offset()? {
+            if let Some(string_table_offset) = self.get_section_offset(".strtab")? {
                 for section in &self.section_headers {
                     if section.section_type == ElfSectionType::SymTab {
                         let mut idx = section.offset as usize;
                         let end = idx + section.size as usize;
-                        println!("idx: {idx}, end: {end}");
                         while idx < end {
                             self.symbols
                                 .push(Symbol64::new(self.blob, idx, string_table_offset)?);
+                            idx += section.ent_size as usize;
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn get_dyn_symbols(&mut self) -> Result<()> {
+        self.get_sections()?;
+        if self.dyn_symbols.is_empty() {
+            if let Some(string_table_offset) = self.get_section_offset(".dynstr")? {
+                for section in &self.section_headers {
+                    if section.section_type == ElfSectionType::DynSym {
+                        let mut idx = section.offset as usize;
+                        let end = idx + section.size as usize;
+                        while idx < end {
+                            self.dyn_symbols.push(Symbol64::new(
+                                self.blob,
+                                idx,
+                                string_table_offset,
+                            )?);
                             idx += section.ent_size as usize;
                         }
                     }
