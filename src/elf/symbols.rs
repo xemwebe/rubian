@@ -1,5 +1,3 @@
-use std::ffi::CStr;
-use std::fmt::{self, Display};
 use strum::FromRepr;
 
 use super::Result;
@@ -27,9 +25,9 @@ pub enum SymbolType {
     Unknown = 0xf,
 }
 
-pub struct Symbol64<'a> {
+pub struct Symbol64 {
     // Symbol name, index in string tbl
-    name: Option<&'a CStr>,
+    name: Option<usize>,
     symbol_type: SymbolType,
     binding: SymbolBinding,
     // No defined meaning, 0
@@ -42,13 +40,13 @@ pub struct Symbol64<'a> {
     size: u64,
 }
 
-impl<'a> Symbol64<'a> {
-    pub(super) fn new(blob: &'a Blob, idx: usize, string_table_offset: usize) -> Result<Self> {
+impl Symbol64 {
+    pub(super) fn new(blob: &Blob, idx: usize, string_table_offset: usize) -> Result<Self> {
         let name_addr = string_table_offset + (blob.get_u32(idx)? as usize);
         let name = if name_addr == 0 {
             None
         } else {
-            Some(blob.get_cstring(name_addr)?)
+            Some(name_addr)
         };
         // Lower 4 bits: symbol type, upper 4 bits: symbol binding
         let info = blob.get_u8(idx + 4)?;
@@ -63,26 +61,13 @@ impl<'a> Symbol64<'a> {
             size: blob.get_u64(idx + 16)?,
         })
     }
-}
 
-impl<'a> Display for Symbol64<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        let name = if let Some(name) = self.name {
-            if name.is_empty() {
-                "*empty*".to_string()
-            } else {
-                name.to_string_lossy().to_string()
-            }
-        } else {
-            "*unnamed*".to_string()
-        };
-        write!(f, " {:7}", format!("{:?}", self.symbol_type))?;
-        write!(f, " | {:7}", format!("{:?}", self.binding))?;
-        write!(f, " | {:7}", self.other)?;
-        write!(f, " | 0x{:016x}", self.value)?;
-        write!(f, " | 0x{:016x}", self.size)?;
-        write!(f, " | 0x{:04x}", self.index)?;
-        write!(f, " | {name:20}")?;
-        Ok(())
+    pub(super) fn to_string(&self, blob: &Blob) -> Result<String> {
+        let name = blob.get_cname(self.name)?;
+        let output = format!(" {:7} | {:7} | 0x{:08x} | 0x{:016x} | 0x{:016x} | 0x{:04x} | {name:20}", 
+            format!("{:?}", self.symbol_type), format!("{:?}", self.binding), self.other,
+                self.value, self.size, self.index);
+        
+        Ok(output)
     }
 }

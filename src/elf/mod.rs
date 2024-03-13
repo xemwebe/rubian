@@ -1,5 +1,4 @@
 use crate::blob::{BinaryError, BinaryType, Blob};
-use std::ffi::CStr;
 use std::fmt::{self, Display};
 use strum::FromRepr;
 use thiserror::Error;
@@ -238,9 +237,9 @@ impl Display for MachineType {
     }
 }
 
-pub struct SectionHeader<'a> {
+pub struct SectionHeader {
     // Section name (string tbl index)
-    name: Option<&'a CStr>,
+    name: Option<usize>,
     // Section type
     section_type: ElfSectionType,
     // Section flags
@@ -261,13 +260,13 @@ pub struct SectionHeader<'a> {
     ent_size: u64,
 }
 
-impl<'a> SectionHeader<'a> {
-    fn new(blob: &'a Blob, offset: usize, header_string_table_offset: usize) -> Result<Self> {
+impl SectionHeader {
+    fn new(blob: &Blob, offset: usize, header_string_table_offset: usize) -> Result<Self> {
         let name_addr = header_string_table_offset + (blob.get_u32(offset)? as usize);
         let name = if name_addr == 0 {
             None
         } else {
-            Some(blob.get_cstring(name_addr)?)
+            Some(name_addr)
         };
         let section_type =
             ElfSectionType::from_repr(blob.get_u32(offset + 4)?).unwrap_or(ElfSectionType::Unknown);
@@ -314,32 +313,15 @@ impl<'a> SectionHeader<'a> {
         }
         flag_string
     }
-}
 
-impl<'a> Display for SectionHeader<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::result::Result<(), fmt::Error> {
-        let name = if let Some(name) = self.name {
-            if name.is_empty() {
-                "*empty*".to_string()
-            } else {
-                name.to_string_lossy().to_string()
-            }
-        } else {
-            "*unnamed*".to_string()
-        };
-        write!(f, "{name:20}")?;
+    fn to_string(&self, blob: &Blob) -> Result<String> {
+        let name = blob.get_cname(self.name)?;
         let sec_type = format!("{:?}", self.section_type);
-        write!(f, " | {:10}", sec_type)?;
-        write!(f, " | {:18}", self.flags_as_string())?;
-        write!(f, " | 0x{:016x}", self.addr)?;
-        write!(f, " | 0x{:016x}", self.offset)?;
-        write!(f, " | 0x{:016x}", self.size)?;
-        write!(f, " | {:8}", self.link)?;
-        write!(f, " | {:8}", self.info)?;
-        write!(f, " | {:18}", self.addr_align)?;
-        write!(f, " | {:8}", self.ent_size)?;
+        let output = format!("{name:20} | {:10} | {:18} | 0x{:016x} | 0x{:016x} | 0x{:016x} | {:8} | {:8} | {:18} | {:8}",
+            sec_type, self.flags_as_string(), self.addr, self.offset, self.size,
+            self.link, self.info, self.addr_align, self.ent_size);
 
-        Ok(())
+        Ok(output)
     }
 }
 
@@ -401,29 +383,31 @@ impl ElfHeader {
     }
 }
 
-pub struct ElfBinary<'a> {
-    blob: &'a Blob,
+pub struct ElfBinary {
+    blob: Blob,
     id: ElfIdent,
     header: ElfHeader,
-    section_headers: Vec<SectionHeader<'a>>,
-    symbols: Vec<Symbol64<'a>>,
-    dyn_symbols: Vec<Symbol64<'a>>,
+    section_headers: Vec<SectionHeader>,
+    symbols: Vec<Symbol64>,
+    dyn_symbols: Vec<Symbol64>,
     header_string_table_offset: usize,
 }
 
-impl<'a> ElfBinary<'a> {
-    pub fn new(blob: &'a Blob) -> Result<Self> {
+impl ElfBinary {
+    pub fn new(blob: Blob) -> Result<Self> {
         let id = match &blob.bin_type {
             BinaryType::Elf(elf_ident) => Ok(elf_ident),
             _ => Err(ElfError::NoElfBinary),
         }?;
-        let header = ElfHeader::new(blob)?;
+        let id = (*id).clone();
+
+        let header = ElfHeader::new(&blob)?;
         let string_table_header_offset =
             (header.shoff + (header.shentsize as u64) * (header.shstrndx as u64)) as usize;
         let header_string_table_offset = blob.get_u64(string_table_header_offset + 24)? as usize;
         Ok(Self {
             blob,
-            id: (*id).clone(),
+            id,
             header,
             section_headers: Vec::new(),
             symbols: Vec::new(),
@@ -436,12 +420,12 @@ impl<'a> ElfBinary<'a> {
         Ok(format!("{}\n{}", self.id, self.header.info(true)))
     }
 
-    pub fn section_headers_info(&mut self) -> Result<String> {
+    pub fn section_headers_info(&mut self, blob: &Blob) -> Result<String> {
         self.get_sections()?;
         let mut info = "Nr. | Name                | Type       |      Flags         |    Address         |  File Offset       | Size               | Link     | Info     | Address Alignment  | Entries Size ".to_string();
         info = format!("{info}\n----+---------------------+------------+--------------------+--------------------+--------------------+--------------------+----------+----------+--------------------+--------------\n");
         for (idx, sec) in self.section_headers.iter().enumerate() {
-            info = format!("{info}{idx:3} |{sec}\n");
+            info = format!("{info}{idx:3} |{}\n", sec.to_string(blob)?);
         }
         Ok(info)
     }
@@ -453,7 +437,7 @@ impl<'a> ElfBinary<'a> {
                 .to_string();
         info = format!("{info}\n-------+--------+---------+---------+--------------------+--------------------+--------+---------------\n");
         for (idx, symbol) in self.symbols.iter().enumerate() {
-            info = format!("{info}{idx:5} |{symbol}\n");
+            info = format!("{info}{idx:5} |{}\n", symbol.to_string(&self.blob)?);
         }
         Ok(info)
     }
@@ -465,7 +449,7 @@ impl<'a> ElfBinary<'a> {
                 .to_string();
         info = format!("{info}\n-------+--------+---------+---------+--------------------+--------------------+--------+---------------\n");
         for (idx, symbol) in self.dyn_symbols.iter().enumerate() {
-            info = format!("{info}{idx:5} |{symbol}\n");
+            info = format!("{info}{idx:5} |{}\n", symbol.to_string(&self.blob)?);
         }
         Ok(info)
     }
@@ -475,7 +459,7 @@ impl<'a> ElfBinary<'a> {
             let mut idx = self.header.shoff as usize;
             for _ in 0..self.header.shnum {
                 self.section_headers.push(SectionHeader::new(
-                    self.blob,
+                    &self.blob,
                     idx,
                     self.header_string_table_offset,
                 )?);
@@ -489,6 +473,7 @@ impl<'a> ElfBinary<'a> {
         self.get_sections()?;
         for section in &self.section_headers {
             if let Some(name) = section.name {
+                let name = self.blob.get_cstr(name)?;
                 if name.to_bytes() == section_name.as_bytes() {
                     return Ok(Some(section.offset as usize));
                 }
@@ -507,7 +492,7 @@ impl<'a> ElfBinary<'a> {
                         let end = idx + section.size as usize;
                         while idx < end {
                             self.symbols
-                                .push(Symbol64::new(self.blob, idx, string_table_offset)?);
+                                .push(Symbol64::new(&self.blob, idx, string_table_offset)?);
                             idx += section.ent_size as usize;
                         }
                     }
@@ -527,7 +512,7 @@ impl<'a> ElfBinary<'a> {
                         let end = idx + section.size as usize;
                         while idx < end {
                             self.dyn_symbols.push(Symbol64::new(
-                                self.blob,
+                                &self.blob,
                                 idx,
                                 string_table_offset,
                             )?);

@@ -24,6 +24,16 @@ pub struct Blob {
     data: Vec<u8>,
 }
 
+impl Default for Blob {
+    fn default() -> Self {
+        Self {
+            bin_type: BinaryType::Unknown,
+            lsb: false,
+            data: Vec::new(),
+        }
+    }
+}
+
 impl Blob {
     pub fn from_file(file_name: &Path) -> Result<Self> {
         let file = fs::read(file_name).map_err(|_| BinaryError::FileNotFound)?;
@@ -86,8 +96,22 @@ impl Blob {
         }
     }
 
-    pub fn get_cstring(&self, offset: usize) -> Result<&CStr> {
+    pub fn get_cstr(&self, offset: usize) -> Result<&CStr> {
         CStr::from_bytes_until_nul(&self.data[offset..]).map_err(|_| BinaryError::InvalidSliceSize)
+    }
+
+    pub fn get_cname(&self, offset: Option<usize>) -> Result<String> {
+        match offset {
+            Some(name_addr) => {
+                let cstr = self.get_cstr(name_addr)?;
+                if cstr.is_empty() {
+                    Ok("*empty*".to_string())
+                } else {
+                    Ok(cstr.to_string_lossy().to_string())
+                }
+            }
+            None => Ok("*unnamed*".to_string()),
+        }
     }
 
     pub fn guess_file_type(&mut self) -> Result<()> {
