@@ -113,12 +113,14 @@ impl RubianApp {
 
 struct ElfBinaryInfo {
     elf: elf::ElfBinary,
+    content: Vec<String>,
 }
 
 impl ElfBinaryInfo {
     fn new(binary: blob::Blob) -> Result<Self> {
         Ok(Self {
             elf: elf::ElfBinary::new(binary)?,
+            content: Vec::new(),
         })
     }
 
@@ -133,56 +135,47 @@ impl ElfBinaryInfo {
 impl FileInfo for ElfBinaryInfo {
     fn info(&mut self, ui: &mut egui::Ui) {
         ui.label(self.elf_header());
+
+        if ui.button("View section header").clicked() {
+            match self.elf.section_headers_info() {
+                Ok(s) => {
+                    self.content.push(s);
+                }
+                Err(e) => {
+                    self.content
+                        .push(format!("Failed to read section header: {}", e));
+                }
+            }
+        }
+
+        if ui.button("View symbols").clicked() {
+            match self.elf.symbols_info() {
+                Ok(s) => {
+                    self.content.push(s);
+                }
+                Err(e) => {
+                    self.content.push(format!("Failed symbol table: {}", e));
+                }
+            }
+        }
+
+        if ui.button("View dynamic symbols").clicked() {
+            match self.elf.dyn_symbols_info() {
+                Ok(s) => {
+                    self.content.push(s);
+                }
+                Err(e) => {
+                    self.content
+                        .push(format!("Failed to read dynamic symbols table: {}", e));
+                }
+            }
+        }
+
+        for s in &self.content {
+            ui.label(s);
+        }
     }
 }
-// fn file_info_output(&mut self, ui: &mut egui::Ui) -> Result<()> {
-//     match &self.file {
-//         Some(path) => {
-//             if self.data.is_none() || self.reload {
-//                 self.reload = false;
-//                 info!("Loading {}", path.to_string_lossy());
-//                 self.data = Some(blob::Blob::from_file(path)?);
-//                 debug!("Loading was successfull");
-//             }
-//             if let Some(binary) = &mut self.data {
-//                 ui.add(egui::Label::new(&format!(
-//                     "Anylizing file {}",
-//                     path.to_string_lossy()
-//                 )));
-//                 binary.guess_file_type()?;
-//                 debug!("file type guessed");
-//                 match binary.bin_type {
-//                     blob::BinaryType::Elf(_) => {
-//                         let mut elf_binary = elf::ElfBinary::new(&binary)?;
-//                         debug!("Elf binary loaded");
-//                         let mut output = format!("{}", elf_binary.header_info()?);
-//                         debug!("header info created");
-//                         output = format!("{output}\nSection header table:");
-//                         output = format!("{output}{}", elf_binary.section_headers_info()?);
-//                         debug!("section info created");
-//                         output = format!("{output}\nSymbol table:");
-//                         output = format!("{output}{}", elf_binary.symbols_info()?);
-//                         debug!("symbol info created");
-//                         output = format!("{output}\nDynamic symbol table:");
-//                         output = format!("{output}{}", elf_binary.dyn_symbols_info()?);
-//                         debug!("dyn symbols created");
-//                         ui.add(egui::Label::new(&output));
-//                     }
-//                     _ => {
-//                         ui.add(egui::Label::new("File type is not supported"));
-//                     }
-//                 }
-//             } else {
-//                 ui.add(egui::Label::new("Failed to load file"));
-//             }
-//         }
-//         None => {
-//             ui.add(egui::Label::new("Open a file to analyze"));
-//         }
-//     }
-
-//     Ok(())
-// }
 
 impl eframe::App for RubianApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {

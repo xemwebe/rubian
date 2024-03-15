@@ -420,12 +420,12 @@ impl ElfBinary {
         Ok(format!("{}\n{}", self.id, self.header.info(true)))
     }
 
-    pub fn section_headers_info(&mut self, blob: &Blob) -> Result<String> {
+    pub fn section_headers_info(&mut self) -> Result<String> {
         self.get_sections()?;
         let mut info = "Nr. | Name                | Type       |      Flags         |    Address         |  File Offset       | Size               | Link     | Info     | Address Alignment  | Entries Size ".to_string();
         info = format!("{info}\n----+---------------------+------------+--------------------+--------------------+--------------------+--------------------+----------+----------+--------------------+--------------\n");
         for (idx, sec) in self.section_headers.iter().enumerate() {
-            info = format!("{info}{idx:3} |{}\n", sec.to_string(blob)?);
+            info = format!("{info}{idx:3} |{}\n", sec.to_string(&self.blob)?);
         }
         Ok(info)
     }
