@@ -2,12 +2,16 @@
 
 use eframe::egui;
 
+use crate::file_info::{FileInfo, NoFile};
 use anyhow::Result;
 use clap::Parser;
 use log::{debug, info};
 use std::path::PathBuf;
-mod blob;
+
+use rubian_core::blob;
+
 mod elf;
+mod file_info;
 
 #[derive(Parser)]
 #[command(author, version, about ,long_about = None)]
@@ -34,28 +38,6 @@ fn main() -> Result<(), eframe::Error> {
     )
 }
 
-trait FileInfo {
-    fn info(&mut self, ui: &mut egui::Ui);
-}
-
-struct NoFile {
-    message: String,
-}
-
-impl NoFile {
-    fn new(msg: &str) -> Self {
-        Self {
-            message: msg.to_string(),
-        }
-    }
-}
-
-impl FileInfo for NoFile {
-    fn info(&mut self, ui: &mut egui::Ui) {
-        ui.label(&self.message);
-    }
-}
-
 struct RubianApp {
     file: Option<std::path::PathBuf>,
     file_info: Box<dyn FileInfo>,
@@ -65,9 +47,7 @@ impl Default for RubianApp {
     fn default() -> Self {
         Self {
             file: None,
-            file_info: Box::new(NoFile {
-                message: "no file loaded".to_string(),
-            }),
+            file_info: Box::new(NoFile::new("no file loaded")),
         }
     }
 }
@@ -92,7 +72,7 @@ impl RubianApp {
             }
             self.file_info = match binary.bin_type {
                 blob::BinaryType::Elf(_) => {
-                    if let Ok(elf) = ElfBinaryInfo::new(binary) {
+                    if let Ok(elf) = elf::ElfBinaryInfo::new(binary) {
                         Box::new(elf)
                     } else {
                         Box::new(NoFile::new("Header of ELF binary is corrupt"))
@@ -107,72 +87,6 @@ impl RubianApp {
                 "Failed to load file {}",
                 path.to_string_lossy()
             )));
-        }
-    }
-}
-
-struct ElfBinaryInfo {
-    elf: elf::ElfBinary,
-    content: Vec<String>,
-}
-
-impl ElfBinaryInfo {
-    fn new(binary: blob::Blob) -> Result<Self> {
-        Ok(Self {
-            elf: elf::ElfBinary::new(binary)?,
-            content: Vec::new(),
-        })
-    }
-
-    fn elf_header(&self) -> String {
-        match self.elf.header_info() {
-            Ok(info) => info,
-            Err(err) => format!("Error: {}", err),
-        }
-    }
-}
-
-impl FileInfo for ElfBinaryInfo {
-    fn info(&mut self, ui: &mut egui::Ui) {
-        ui.label(self.elf_header());
-
-        if ui.button("View section header").clicked() {
-            match self.elf.section_headers_info() {
-                Ok(s) => {
-                    self.content.push(s);
-                }
-                Err(e) => {
-                    self.content
-                        .push(format!("Failed to read section header: {}", e));
-                }
-            }
-        }
-
-        if ui.button("View symbols").clicked() {
-            match self.elf.symbols_info() {
-                Ok(s) => {
-                    self.content.push(s);
-                }
-                Err(e) => {
-                    self.content.push(format!("Failed symbol table: {}", e));
-                }
-            }
-        }
-
-        if ui.button("View dynamic symbols").clicked() {
-            match self.elf.dyn_symbols_info() {
-                Ok(s) => {
-                    self.content.push(s);
-                }
-                Err(e) => {
-                    self.content
-                        .push(format!("Failed to read dynamic symbols table: {}", e));
-                }
-            }
-        }
-
-        for s in &self.content {
-            ui.label(s);
         }
     }
 }

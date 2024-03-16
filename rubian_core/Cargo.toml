@@ -1,0 +1,22 @@
+[package]
+name = "rubian_core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.72"
+authors = ["Mark Beinker <mwb@quantlink.de>"]
+description = "Binary analysis tool"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/xemwebe/rubian"
+readme = "README.md"
+keywords = ["binary"]
+categories = ["library", "parsing"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+strum = { version = "0.25", features = ["derive"] }
+thiserror = "1.0"
+env_logger = { version = "0.10", default-features = false, features = [
+    "auto-color",
+    "humantime",
+] }
+log = "0.4.21"
