@@ -1,4 +1,5 @@
 use crate::blob::{BinaryError, BinaryType, Blob};
+use crate::table::{Table, TableType};
 use std::fmt::{self, Display};
 use strum::FromRepr;
 use thiserror::Error;
@@ -15,6 +16,8 @@ pub enum ElfError {
     NoElfBinary,
     #[error("invalid binary")]
     InvalidBinary(#[from] BinaryError),
+    #[error("internal error")]
+    InternalError,
 }
 
 #[derive(Clone, Debug)]
@@ -314,14 +317,19 @@ impl SectionHeader {
         flag_string
     }
 
-    fn to_string(&self, blob: &Blob) -> Result<String> {
-        let name = blob.get_cname(self.name)?;
-        let sec_type = format!("{:?}", self.section_type);
-        let output = format!("{name:20} | {:10} | {:18} | 0x{:016x} | 0x{:016x} | 0x{:016x} | {:8} | {:8} | {:18} | {:8}",
-            sec_type, self.flags_as_string(), self.addr, self.offset, self.size,
-            self.link, self.info, self.addr_align, self.ent_size);
-
-        Ok(output)
+    fn to_vec(&self, blob: &Blob) -> Result<Vec<String>> {
+        let mut v = Vec::with_capacity(10);
+        v.push(blob.get_cname(self.name)?);
+        v.push(format!("{:?}", self.section_type));
+        v.push(self.flags_as_string());
+        v.push(format!("0x{:016x}", self.addr));
+        v.push(format!("0x{:016x}", self.offset));
+        v.push(format!("0x{:016x}", self.size));
+        v.push(self.link.to_string());
+        v.push(self.info.to_string());
+        v.push(self.addr_align.to_string());
+        v.push(self.ent_size.to_string());
+        Ok(v)
     }
 }
 
@@ -420,38 +428,77 @@ impl ElfBinary {
         Ok(format!("{}\n{}", self.id, self.header.info(true)))
     }
 
-    pub fn section_headers_info(&mut self) -> Result<String> {
+    pub fn section_headers_table(&mut self) -> Result<Table> {
         self.get_sections()?;
-        let mut info = "Nr. | Name                | Type       |      Flags         |    Address         |  File Offset       | Size               | Link     | Info     | Address Alignment  | Entries Size ".to_string();
-        info = format!("{info}\n----+---------------------+------------+--------------------+--------------------+--------------------+--------------------+----------+----------+--------------------+--------------\n");
+        let headers = [
+            "Nr.",
+            "Name",
+            "Type",
+            "Flags",
+            "Address",
+            "FileOffset",
+            "Size",
+            "Link",
+            "Info",
+            "Address Alignment",
+            "Entries Size",
+        ];
+        let mut rows = Vec::with_capacity(self.section_headers.len());
         for (idx, sec) in self.section_headers.iter().enumerate() {
-            info = format!("{info}{idx:3} |{}\n", sec.to_string(&self.blob)?);
+            let mut v = sec.to_vec(&self.blob)?;
+            let mut row = Vec::with_capacity(v.len() + 1);
+            row.push(idx.to_string());
+            row.append(&mut v);
+            if headers.len() != row.len() {
+                return Err(ElfError::InternalError);
+            }
+            rows.push(row);
         }
-        Ok(info)
+        Ok(Table::new(TableType::ElfSectionHeader, &headers, rows))
     }
 
-    pub fn symbols_info(&mut self) -> Result<String> {
+    const SYMBOL_HEADERS: [&'static str; 8] = [
+        "Nr.", "Type", "Binding", "Other", "Value", "Size", "SecIdx", "Name",
+    ];
+
+    pub fn symbols_table(&mut self) -> Result<Table> {
         self.get_symbols()?;
-        let mut info =
-            "Nr.   | Type    | Binding | Other   | Value              | Size               | SecIdx | Name "
-                .to_string();
-        info = format!("{info}\n-------+--------+---------+---------+--------------------+--------------------+--------+---------------\n");
+        let mut rows = Vec::with_capacity(self.symbols.len());
         for (idx, symbol) in self.symbols.iter().enumerate() {
-            info = format!("{info}{idx:5} |{}\n", symbol.to_string(&self.blob)?);
+            let mut v = symbol.to_vec(&self.blob)?;
+            let mut row = Vec::with_capacity(v.len() + 1);
+            row.push(idx.to_string());
+            row.append(&mut v);
+            if Self::SYMBOL_HEADERS.len() != row.len() {
+                return Err(ElfError::InternalError);
+            }
+            rows.push(row);
         }
-        Ok(info)
+        Ok(Table::new(
+            TableType::ElfSymbols,
+            &Self::SYMBOL_HEADERS,
+            rows,
+        ))
     }
 
-    pub fn dyn_symbols_info(&mut self) -> Result<String> {
+    pub fn dyn_symbols_table(&mut self) -> Result<Table> {
         self.get_dyn_symbols()?;
-        let mut info =
-            "Nr.   | Type    | Binding | Other   | Value              | Size               | SecIdx | Name "
-                .to_string();
-        info = format!("{info}\n-------+--------+---------+---------+--------------------+--------------------+--------+---------------\n");
+        let mut rows = Vec::with_capacity(self.dyn_symbols.len());
         for (idx, symbol) in self.dyn_symbols.iter().enumerate() {
-            info = format!("{info}{idx:5} |{}\n", symbol.to_string(&self.blob)?);
+            let mut v = symbol.to_vec(&self.blob)?;
+            let mut row = Vec::with_capacity(v.len() + 1);
+            row.push(idx.to_string());
+            row.append(&mut v);
+            if Self::SYMBOL_HEADERS.len() != row.len() {
+                return Err(ElfError::InternalError);
+            }
+            rows.push(row);
         }
-        Ok(info)
+        Ok(Table::new(
+            TableType::ElfDynamicSymbols,
+            &Self::SYMBOL_HEADERS,
+            rows,
+        ))
     }
 
     fn get_sections(&mut self) -> Result<()> {

@@ -62,12 +62,16 @@ impl Symbol64 {
         })
     }
 
-    pub(super) fn to_string(&self, blob: &Blob) -> Result<String> {
-        let name = blob.get_cname(self.name)?;
-        let output = format!(" {:7} | {:7} | 0x{:08x} | 0x{:016x} | 0x{:016x} | 0x{:04x} | {name:20}", 
-            format!("{:?}", self.symbol_type), format!("{:?}", self.binding), self.other,
-                self.value, self.size, self.index);
-        
-        Ok(output)
+    pub(super) fn to_vec(&self, blob: &Blob) -> Result<Vec<String>> {
+        let mut v = Vec::with_capacity(7);
+        v.push(format!("{:?}", self.symbol_type));
+        v.push(format!("{:?}", self.binding));
+        v.push(format!("0x{:016x}", self.other));
+        v.push(format!("0x{:016x}", self.value));
+        v.push(format!("0x{:016x}", self.size));
+        v.push(format!("0x{:04x}", self.index));
+        v.push(blob.get_cname(self.name)?);
+
+        Ok(v)
     }
 }
