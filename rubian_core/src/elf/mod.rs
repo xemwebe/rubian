@@ -1,5 +1,5 @@
 use crate::blob::{BinaryError, BinaryType, Blob};
-use crate::table::{Table, TableType};
+use crate::table::{Row, RowAction, Table, TableType};
 use std::fmt::{self, Display};
 use strum::FromRepr;
 use thiserror::Error;
@@ -446,13 +446,16 @@ impl ElfBinary {
         let mut rows = Vec::with_capacity(self.section_headers.len());
         for (idx, sec) in self.section_headers.iter().enumerate() {
             let mut v = sec.to_vec(&self.blob)?;
-            let mut row = Vec::with_capacity(v.len() + 1);
-            row.push(idx.to_string());
-            row.append(&mut v);
-            if headers.len() != row.len() {
+            let mut content = Vec::with_capacity(v.len() + 1);
+            content.push(idx.to_string());
+            content.append(&mut v);
+            if headers.len() != content.len() {
                 return Err(ElfError::InternalError);
             }
-            rows.push(row);
+            rows.push(Row {
+                content,
+                action: RowAction::None,
+            });
         }
         Ok(Table::new(TableType::ElfSectionHeader, &headers, rows))
     }
@@ -466,13 +469,16 @@ impl ElfBinary {
         let mut rows = Vec::with_capacity(self.symbols.len());
         for (idx, symbol) in self.symbols.iter().enumerate() {
             let mut v = symbol.to_vec(&self.blob)?;
-            let mut row = Vec::with_capacity(v.len() + 1);
-            row.push(idx.to_string());
-            row.append(&mut v);
-            if Self::SYMBOL_HEADERS.len() != row.len() {
+            let mut content = Vec::with_capacity(v.len() + 1);
+            content.push(idx.to_string());
+            content.append(&mut v);
+            if Self::SYMBOL_HEADERS.len() != content.len() {
                 return Err(ElfError::InternalError);
             }
-            rows.push(row);
+            rows.push(Row {
+                content,
+                action: RowAction::None,
+            });
         }
         Ok(Table::new(
             TableType::ElfSymbols,
@@ -486,13 +492,16 @@ impl ElfBinary {
         let mut rows = Vec::with_capacity(self.dyn_symbols.len());
         for (idx, symbol) in self.dyn_symbols.iter().enumerate() {
             let mut v = symbol.to_vec(&self.blob)?;
-            let mut row = Vec::with_capacity(v.len() + 1);
-            row.push(idx.to_string());
-            row.append(&mut v);
-            if Self::SYMBOL_HEADERS.len() != row.len() {
+            let mut content = Vec::with_capacity(v.len() + 1);
+            content.push(idx.to_string());
+            content.append(&mut v);
+            if Self::SYMBOL_HEADERS.len() != content.len() {
                 return Err(ElfError::InternalError);
             }
-            rows.push(row);
+            rows.push(Row {
+                content,
+                action: RowAction::None,
+            });
         }
         Ok(Table::new(
             TableType::ElfDynamicSymbols,

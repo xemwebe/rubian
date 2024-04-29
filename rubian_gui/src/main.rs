@@ -14,7 +14,7 @@ mod elf;
 mod file_info;
 
 #[derive(Parser)]
-#[command(author, version, about ,long_about = None)]
+#[command(author, version, about, long_about = None)]
 struct Cli {
     file: Option<PathBuf>,
 }

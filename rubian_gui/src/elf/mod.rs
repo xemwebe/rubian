@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use crate::file_info::FileInfo;
 use anyhow::Result;
 use eframe::egui;
@@ -18,8 +20,14 @@ impl TableInfo {
         ui.add_space(15.0);
         TableBuilder::new(ui)
             .striped(true)
-            .columns(Column::auto().resizable(true), self.table.headline.len())
+            .columns(
+                Column::auto().resizable(true),
+                self.table.headline.len() + 1,
+            )
             .header(20.0, |mut header| {
+                header.col(|ui| {
+                    ui.label("action");
+                });
                 for h in &self.table.headline {
                     header.col(|ui| {
                         ui.heading(h);
@@ -29,7 +37,17 @@ impl TableInfo {
             .body(|mut body| {
                 for table_row in &self.table.rows {
                     body.row(15.0, |mut row| {
-                        for table_col in table_row {
+                        row.col(|ui| match table_row.action {
+                            table::RowAction::View => {
+                                if ui.button("View..").clicked() {
+                                    ui.label("clicked!");
+                                }
+                            }
+                            table::RowAction::None => {
+                                ui.label("");
+                            }
+                        });
+                        for table_col in &table_row.content {
                             row.col(|ui| {
                                 ui.label(table_col);
                             });

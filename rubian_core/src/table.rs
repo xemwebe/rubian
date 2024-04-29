@@ -23,11 +23,21 @@ impl Display for TableType {
 pub struct Table {
     pub table_type: TableType,
     pub headline: Vec<String>,
-    pub rows: Vec<Vec<String>>,
+    pub rows: Vec<Row>,
+}
+
+pub enum RowAction {
+    None,
+    View,
+}
+
+pub struct Row {
+    pub action: RowAction,
+    pub content: Vec<String>,
 }
 
 impl Table {
-    pub fn new(table_type: TableType, headers: &[&str], rows: Vec<Vec<String>>) -> Self {
+    pub fn new(table_type: TableType, headers: &[&str], rows: Vec<Row>) -> Self {
         let mut headline = Vec::with_capacity(headers.len());
         for header in headers {
             headline.push(header.to_string());
