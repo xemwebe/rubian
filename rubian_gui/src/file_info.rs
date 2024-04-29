@@ -1,8 +1,6 @@
-use eframe::egui;
-
 /// Generic trait that injects information into a ui
 pub trait FileInfo {
-    fn info(&mut self, ui: &mut egui::Ui);
+    // fn info(&mut self, ui: &mut egui::Ui);
 }
 
 /// Simple FileInfo to inject a simpel message
@@ -19,7 +17,7 @@ impl NoFile {
 }
 
 impl FileInfo for NoFile {
-    fn info(&mut self, ui: &mut egui::Ui) {
-        ui.label(&self.message);
-    }
+    // fn info(&mut self, ui: &mut egui::Ui) {
+    // ui.label(&self.message);
+    // }
 }

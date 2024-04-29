@@ -1,5 +1,5 @@
 [package]
-name = "rubian"
+name = "rubian_gui"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.72"
@@ -9,21 +9,22 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/xemwebe/rubian"
 readme = "README.md"
 keywords = ["binary"]
-categories = ["command-line-utilities", "parsing"]
+categories = ["parsing", "binary analyzer"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rubian_core = { version="0.1.0", path="../rubian_core" }
 anyhow = "1.0"
-clap = { version = "4.4", features = ["derive"] }
 thiserror = "1.0"
-eframe = { version="0.26", features = [
-    "default",
+console_log = "1.0.0"
+log = "0.4"
+console_error_panic_hook = "0.1"
+leptos = { version = "0.6.9", features = ["csr"] }
+futures = "0.3"
+tauri-sys = { git = "https://github.com/JonasKruckenberg/tauri-sys", rev = "0c864e", features = [
+  "all",
 ] }
-env_logger = { version = "0.10", default-features = false, features = [
-    "auto-color",
-    "humantime",
-] }
-rfd = "0.13"
-log = "0.4.21"
-egui_extras = "0.26"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+

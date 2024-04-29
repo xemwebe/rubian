@@ -1,0 +1,10 @@
+[build]
+target = "./rubian_gui/index.html"
+
+[watch]
+ignore = ["./rubian_tauri", "./rubian_core"]
+
+[serve]
+address = "127.0.0.1"
+port = 1420
+open = false
