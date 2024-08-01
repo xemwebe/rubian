@@ -25,7 +25,7 @@ cargo leptos build --release
 
 Will generate your server binary in target/server/release and your site package in target/site
 
-## Testing Your Project
+## Running end-to-end tests
 ```bash
 cargo leptos end-to-end
 ```

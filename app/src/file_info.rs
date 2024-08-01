@@ -35,9 +35,8 @@ use crate::files::BINARY_STORE;
          <h3>File Info</h3> 
          <p>Basic file info of loaded binary.</p>
          <button on:click=move |_| { file_info.refetch(); }>"Analyze File"</button>
-        {move || match file_info.get() {
-            None => view! { <p>"Loading..."</p> }.into_view(),
-            Some(data) => view! { <p>{data}</p> }.into_view()
-        }}        
+         <Suspense fallback=|| view!{ <p>"Loading..."</p> } >
+        <pre>{move || file_info.get()}</pre>        
+        </Suspense>
      } 
  } 
