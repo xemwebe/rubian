@@ -1,21 +1,19 @@
 use crate::elf::ElfIdent;
 use std::ffi::CStr;
 use std::fmt::{self, Display};
-use std::fs;
-use std::path::Path;
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum BinaryError {
-    #[error("invalid binary")]
-    InvalidSliceSize,
+#[derive(Error, Debug, Clone)]
+pub enum BlobError {
     #[error("file not found")]
     FileNotFound,
     #[error("invalid header signature")]
     InvalidHeader,
+    #[error("invalid slize")]
+    InvalidSliceSize,
 }
 
-type Result<T> = std::result::Result<T, BinaryError>;
+type Result<T> = std::result::Result<T, BlobError>;
 
 /// Representation of some binary structure
 pub struct Blob {
@@ -35,17 +33,18 @@ impl Default for Blob {
 }
 
 impl Blob {
-    pub fn from_file(file_name: &Path) -> Result<Self> {
-        let file = fs::read(file_name).map_err(|_| BinaryError::FileNotFound)?;
-        Ok(Self {
+    pub fn new(data: Vec<u8>) -> Result<Self> {
+        let mut blob = Self {
             bin_type: BinaryType::Unknown,
-            lsb: true,
-            data: file,
-        })
+            lsb: false,
+            data,
+        };
+        blob.guess_file_type()?;
+        Ok(blob)
     }
 
     pub fn get_u8(&self, offset: usize) -> Result<u8> {
-        Ok(*self.data.get(offset).ok_or(BinaryError::InvalidSliceSize)?)
+        Ok(*self.data.get(offset).ok_or(BlobError::InvalidSliceSize)?)
     }
 
     pub fn get_u16(&self, offset: usize) -> Result<u16> {
@@ -53,13 +52,13 @@ impl Blob {
             Ok(u16::from_le_bytes(
                 self.data[offset..offset + 2]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             ))
         } else {
             Ok(u16::from_be_bytes(
                 self.data[offset..offset + 2]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             ))
         }
     }
@@ -69,13 +68,13 @@ impl Blob {
             Ok(u32::from_le_bytes(
                 self.data[offset..offset + 4]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             ))
         } else {
             Ok(u32::from_be_bytes(
                 self.data[offset..offset + 4]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             ))
         }
     }
@@ -85,19 +84,19 @@ impl Blob {
             Ok(u64::from_le_bytes(
                 self.data[offset..offset + 8]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             ))
         } else {
             Ok(u64::from_be_bytes(
                 self.data[offset..offset + 8]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             ))
         }
     }
 
     pub fn get_cstr(&self, offset: usize) -> Result<&CStr> {
-        CStr::from_bytes_until_nul(&self.data[offset..]).map_err(|_| BinaryError::InvalidSliceSize)
+        CStr::from_bytes_until_nul(&self.data[offset..]).map_err(|_| BlobError::InvalidSliceSize)
     }
 
     pub fn get_cname(&self, offset: Option<usize>) -> Result<String> {
@@ -114,14 +113,14 @@ impl Blob {
         }
     }
 
-    pub fn guess_file_type(&mut self) -> Result<()> {
+    fn guess_file_type(&mut self) -> Result<()> {
         if self.data[0..4] == [0x7f, b'E', b'L', b'F'] {
             let elf_ident = ElfIdent::from_slice(
                 &self.data[4..16]
                     .try_into()
-                    .map_err(|_| BinaryError::InvalidSliceSize)?,
+                    .map_err(|_| BlobError::InvalidSliceSize)?,
             )
-            .map_err(|_| BinaryError::InvalidHeader)?;
+            .map_err(|_| BlobError::InvalidHeader)?;
             self.lsb = elf_ident.data != 2;
             self.bin_type = BinaryType::Elf(elf_ident);
             return Ok(());
@@ -131,6 +130,8 @@ impl Blob {
             self.bin_type = BinaryType::Pe;
             return Ok(());
         }
+
+        self.bin_type = BinaryType::Unknown;
 
         Ok(())
     }

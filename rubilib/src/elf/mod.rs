@@ -1,4 +1,4 @@
-use crate::blob::{BinaryError, BinaryType, Blob};
+use crate::blob::{BinaryType, Blob, BlobError};
 use crate::table::{Row, RowAction, Table, TableType};
 use std::fmt::{self, Display};
 use strum::FromRepr;
@@ -10,14 +10,14 @@ mod symbols;
 
 use symbols::Symbol64;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum ElfError {
     #[error("no elf binary")]
     NoElfBinary,
     #[error("invalid binary")]
-    InvalidBinary(#[from] BinaryError),
-    #[error("internal error")]
     InternalError,
+    #[error("binary corrupted")]
+    BlobCorrupted(#[from] BlobError),
 }
 
 #[derive(Clone, Debug)]
@@ -424,8 +424,12 @@ impl ElfBinary {
         })
     }
 
-    pub fn header_info(&self) -> Result<String> {
-        Ok(format!("{}\n{}", self.id, self.header.info(true)))
+    pub fn ident(&self) -> String {
+        format!("{}", self.id)
+    }
+
+    pub fn header_info(&self) -> String {
+        format!("{}\n{}", self.id, self.header.info(true))
     }
 
     pub fn section_headers_table(&mut self) -> Result<Table> {
