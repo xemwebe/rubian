@@ -1,8 +1,8 @@
 use cfg_if::cfg_if;
 use http::status::StatusCode;
 use leptos::*;
-use thiserror::Error;
 use rubilib::{binary::BinaryError, blob::BlobError};
+use thiserror::Error;
 
 #[cfg(feature = "ssr")]
 use leptos_axum::ResponseOptions;
@@ -14,7 +14,7 @@ pub enum AppError {
     #[error("Failed to read binary file")]
     MalformedBinaryError(#[from] BinaryError),
     #[error("Failed to read binary file")]
-    ReadBlobError(#[from] BlobError)
+    ReadBlobError(#[from] BlobError),
 }
 
 impl AppError {

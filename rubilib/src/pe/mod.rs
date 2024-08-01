@@ -1,4 +1,4 @@
-use crate::blob::{Blob, BinaryType};
+use crate::blob::{BinaryType, Blob};
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, PeError>;
@@ -10,7 +10,7 @@ pub enum PeError {
 }
 
 pub struct PeBinary {
-    _blob: Blob
+    _blob: Blob,
 }
 
 impl PeBinary {
@@ -18,7 +18,7 @@ impl PeBinary {
         if !matches!(blob.bin_type, BinaryType::Pe) {
             Err(PeError::NoPeBinary)
         } else {
-            Ok(Self { _blob:blob })
+            Ok(Self { _blob: blob })
         }
     }
 
@@ -26,4 +26,3 @@ impl PeBinary {
         Ok("Windows PE binary".to_string())
     }
 }
-

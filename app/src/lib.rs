@@ -5,11 +5,11 @@ use leptos_meta::*;
 use leptos_router::*;
 
 pub mod error_template;
-mod files;
 mod file_info;
+mod files;
 
-use files::FileUpload;
 use file_info::FileInfo;
+use files::FileUpload;
 
 #[component]
 pub fn App() -> impl IntoView {

@@ -2,9 +2,9 @@ use crate::blob::{BinaryType, Blob, BlobError};
 use crate::elf::{self, ElfIdent};
 use crate::pe;
 use std::fmt::{self, Display};
-use thiserror::Error;
 use std::fs;
 use std::path::Path;
+use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
 pub enum BinaryError {
@@ -46,7 +46,7 @@ impl Binary {
         *self = Self::new(blob)?;
         Ok(())
     }
-    
+
     pub fn file_info(&self) -> String {
         match self {
             Binary::Elf(elf_binary) => elf_binary.header_info(),
