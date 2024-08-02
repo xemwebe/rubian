@@ -1,9 +1,11 @@
 use crate::blob::{BinaryType, Blob, BlobError};
-use crate::elf::{self, ElfIdent};
+use crate::elf;
 use crate::pe;
-use std::fmt::{self, Display};
-use std::fs;
-use std::path::Path;
+use std::{
+    fmt::{self, Display},
+    fs,
+    path::Path,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug, Clone)]
@@ -47,11 +49,15 @@ impl Binary {
         Ok(())
     }
 
-    pub fn file_info(&self) -> String {
+    pub fn file_info(&self) -> Vec<(String, String)> {
         match self {
             Binary::Elf(elf_binary) => elf_binary.header_info(),
-            Binary::Pe => "Windows PE binary".to_string(),
-            Binary::Unknown => "Unknown binary".to_string(),
+            Binary::Pe => {
+                vec![("Ident".to_string(), "Windows PE binary".to_string())]
+            },
+            Binary::Unknown => {
+                vec![("Ident".to_string(), "Unknown binary".to_string())]
+            }
         }
     }
 }

@@ -1,14 +1,11 @@
-use crate::error_template::AppError;
 use leptos::*;
-use log::error;
 use once_cell::sync::Lazy;
 use rubilib::{
     binary::Binary,
-    blob::{BinaryType, Blob},
+    blob::Blob,
 };
 use server_fn::codec::{MultipartData, MultipartFormData};
-use std::{path::PathBuf, sync::RwLock};
-use thiserror::Error;
+use std::sync::RwLock;
 use web_sys::{wasm_bindgen::JsCast, FormData, HtmlFormElement, SubmitEvent};
 
 // Global instance of binary storage
@@ -47,7 +44,6 @@ pub fn FileUpload() -> impl IntoView {
     });
 
     view! {
-        <h3>Load Binary File</h3>
         <p>Select File to upload and analyze.</p>
         <form on:submit=move |ev: SubmitEvent| {
             ev.prevent_default();
@@ -64,9 +60,9 @@ pub fn FileUpload() -> impl IntoView {
             } else if upload_action.pending().get() {
                 "Uploading...".to_string()
             } else if let Some(Ok(value)) = upload_action.value().get() {
-                value.to_string()
+                format!("File size: {value} (0x{value:016x})")
             } else {
-                format!("{:?}", upload_action.value().get())
+                format!("Error: {:?}", upload_action.value().get())
             }}
         </p>
 

@@ -1,5 +1,6 @@
 use crate::blob::{BinaryType, Blob, BlobError};
 use crate::table::{Row, RowAction, Table, TableType};
+use std::collections::HashMap;
 use std::fmt::{self, Display};
 use strum::FromRepr;
 use thiserror::Error;
@@ -357,9 +358,9 @@ impl ElfHeader {
         })
     }
 
-    pub fn info(&self, full: bool) -> String {
-        let mut s = format!(
-            "type: {}",
+    pub fn info(&self, full: bool) -> Vec<(String, String)> {
+        let mut info = Vec::new();
+        info.push(("Type".to_string(), 
             match self.elf_type {
                 0 => "none",
                 1 => "relocatable",
@@ -369,25 +370,23 @@ impl ElfHeader {
                 0xfe00 | 0xfeff => "OS specific",
                 0xff00 | 0xffff => "processor-specific",
                 _ => "unknown",
-            }
-        );
-        s = format!("{s}, entry point: 0x{:016x}", self.entry);
+            }.to_string()
+        ));
+        info.push(("Entry point".to_string(), format!("0x{:016x}", self.entry)));
         if full {
-            s = format!("{s}\nMachine type: {}", self.machine);
-            s = format!(
-                "{s}\nProgram header offset: 0x{:016x}, size: 0x{:04x}, count: {:6}",
+            info.push(("Machine type".to_string(), format!("{}", self.machine)));
+            info.push(("Program header offset".to_string(), format!("0x{:016x}, size: 0x{:04x}, count: {:6}",
                 self.phoff, self.phentsize, self.phnum
-            );
-            s = format!(
-                "{s}\nSection header offset: 0x{:016x}, size: 0x{:04x}, count: {:6}",
+            )));
+            info.push(("Section header offset".to_string(), format!("0x{:016x}, size: 0x{:04x}, count: {:6}",
                 self.shoff, self.shentsize, self.shnum
-            );
-            s = format!("{s}\nExecutable header size: 0x{:04x}", self.ehsize);
-            s = format!("{s}\nSection header string offset: 0x{:04x}", self.shstrndx);
-            s = format!("{s}\nVersion: {}", self.version);
-            s = format!("{s}\nFlags: 0x{:016x}", self.flags);
+            )));
+            info.push(("Executable header size".to_string(), format!("0x{:04x}", self.ehsize)));
+            info.push(("Section header string offset".to_string(), format!("0x{:04x}", self.shstrndx)));
+            info.push(("Version".to_string(), format!("{}", self.version)));
+            info.push(("Flags".to_string(), format!("0x{:016x}", self.flags)));
         }
-        s
+        info
     }
 }
 
@@ -428,8 +427,10 @@ impl ElfBinary {
         format!("{}", self.id)
     }
 
-    pub fn header_info(&self) -> String {
-        format!("{}\n{}", self.id, self.header.info(true))
+    pub fn header_info(&self) -> Vec<(String, String)> {
+        let mut info = vec![("Ident".to_string(), self.ident())];
+        info.extend(self.header.info(true));
+        info
     }
 
     pub fn section_headers_table(&mut self) -> Result<Table> {
