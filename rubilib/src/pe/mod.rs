@@ -22,7 +22,7 @@ impl PeBinary {
         }
     }
 
-    pub fn header_info(&self) -> Result<String> {
-        Ok("Windows PE binary".to_string())
+    pub fn header_info(&self) -> Vec<(String, String)> {
+        vec![("Ident".to_string(), "Windows PE binary".to_string())]
     }
 }

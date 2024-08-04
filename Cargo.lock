@@ -127,6 +127,7 @@ dependencies = [
  "log",
  "once_cell",
  "rubilib",
+ "serde",
  "server_fn",
  "thiserror",
  "web-sys",
@@ -666,6 +667,7 @@ dependencies = [
  "console_log",
  "leptos",
  "log",
+ "serde",
  "wasm-bindgen",
 ]
 

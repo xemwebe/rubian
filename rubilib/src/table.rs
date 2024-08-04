@@ -1,14 +1,15 @@
 /// Storage class for table data
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+use TableType::*;
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TableType {
     ElfSectionHeader,
     ElfSymbols,
     ElfDynamicSymbols,
 }
-
-use TableType::*;
 
 impl Display for TableType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -20,17 +21,20 @@ impl Display for TableType {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Table {
     pub table_type: TableType,
     pub headline: Vec<String>,
     pub rows: Vec<Row>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum RowAction {
     None,
     View,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Row {
     pub action: RowAction,
     pub content: Vec<String>,

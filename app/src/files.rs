@@ -25,15 +25,14 @@ pub fn FileUpload() -> impl IntoView {
 
         let mut bin_data = Vec::new();
         while let Ok(Some(mut field)) = data.next_field().await {
-            println!("\n[NEXT FIELD]\n");
-            let name = field.name().unwrap_or_default().to_string();
-            println!("  [NAME] {name}");
             while let Ok(Some(chunk)) = field.chunk().await {
                 bin_data.extend_from_slice(&chunk);
             }
         }
         let len = bin_data.len();
         BINARY_STORE.write().unwrap().update(Blob::new(bin_data)?)?;
+        let file_type = BINARY_STORE.read().unwrap().file_type();
+        leptos_axum::redirect(&format!("/{file_type}"));
         Ok(len)
     }
 
@@ -51,8 +50,7 @@ pub fn FileUpload() -> impl IntoView {
             let form_data = FormData::new_with_form(&target).unwrap();
             upload_action.dispatch(form_data);
         }>
-            <input type="file" name="file_to_upload"/>
-            <input type="submit"/>
+            <input type="file" name="file_to_upload" oninput="this.form.requestSubmit()"/>
         </form>
         <p>
             {move || if upload_action.input().get().is_none() && upload_action.value().get().is_none() {

@@ -22,9 +22,9 @@ pub fn FileInfo() -> impl IntoView {
 
     let file_info: Resource<(), _> =
         create_resource(|| (), |_| async move { update_file_info().await });
+    file_info.refetch();
 
     view! {
-        <button on:click=move |_| { file_info.refetch(); }>"Analyze File"</button>
         <Suspense fallback=|| view!{ <p>"Loading..."</p> } >
             <div>
                 <table>

@@ -16,3 +16,4 @@ console_error_panic_hook.workspace = true
 console_log.workspace = true
 log.workspace = true
 wasm-bindgen.workspace = true
+serde = {version="1", features=["derive"]}

@@ -126,9 +126,13 @@ impl Blob {
             return Ok(());
         }
 
-        if self.data[0..4] == [b'M', b'Z', 0, 0] {
-            self.bin_type = BinaryType::Pe;
-            return Ok(());
+        if self.data[0..2] == [b'M', b'Z'] {
+            self.lsb = true;
+            let pe_offset = self.get_u32(0x3c)? as usize;
+            if self.data[pe_offset..pe_offset + 4] == [b'P', b'E', 0, 0] {
+                self.bin_type = BinaryType::Pe;
+                return Ok(());
+            }
         }
 
         self.bin_type = BinaryType::Unknown;

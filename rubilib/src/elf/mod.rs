@@ -1,6 +1,5 @@
 use crate::blob::{BinaryType, Blob, BlobError};
 use crate::table::{Row, RowAction, Table, TableType};
-use std::collections::HashMap;
 use std::fmt::{self, Display};
 use strum::FromRepr;
 use thiserror::Error;

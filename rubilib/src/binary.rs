@@ -22,7 +22,7 @@ type Result<T> = std::result::Result<T, BinaryError>;
 
 pub enum Binary {
     Elf(elf::ElfBinary),
-    Pe,
+    Pe(pe::PeBinary),
     Unknown,
 }
 
@@ -39,7 +39,10 @@ impl Binary {
                 let elf_binary = elf::ElfBinary::new(blob)?;
                 Ok(Self::Elf(elf_binary))
             }
-            BinaryType::Pe => Ok(Self::Pe),
+            BinaryType::Pe => {
+                let pe_binary = pe::PeBinary::new(blob)?;
+                Ok(Self::Pe(pe_binary))
+            }
             _ => Ok(Self::Unknown),
         }
     }
@@ -52,12 +55,18 @@ impl Binary {
     pub fn file_info(&self) -> Vec<(String, String)> {
         match self {
             Binary::Elf(elf_binary) => elf_binary.header_info(),
-            Binary::Pe => {
-                vec![("Ident".to_string(), "Windows PE binary".to_string())]
-            },
+            Binary::Pe(pe_binary) => pe_binary.header_info(),
             Binary::Unknown => {
                 vec![("Ident".to_string(), "Unknown binary".to_string())]
             }
+        }
+    }
+
+    pub fn file_type(&self) -> String {
+        match self {
+            Binary::Elf(_) => "elf".to_string(),
+            Binary::Pe(_) => "pe".to_string(),
+            Binary::Unknown => "unknown".to_string(),
         }
     }
 }
@@ -69,7 +78,7 @@ impl Display for Binary {
                 write!(f, "elf")?;
                 write!(f, "{}", elf_binary.ident())
             }
-            Binary::Pe => write!(f, "pe"),
+            Binary::Pe(_) => write!(f, "pe"),
             Binary::Unknown => write!(f, "unknown"),
         }
     }
