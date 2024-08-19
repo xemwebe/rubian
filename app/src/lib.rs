@@ -1,6 +1,5 @@
 use crate::error_template::{AppError, ErrorTemplate};
 
-use html::Table;
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
@@ -12,7 +11,6 @@ mod files;
 use file_info::FileInfo;
 use files::FileUpload;
 
-use rubilib::elf;
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
 
@@ -88,8 +86,7 @@ pub async fn fetch_elf_table(table_type: ElfTable) -> Result<rubilib::table::Tab
 #[component]
 fn ElfPage() -> impl IntoView {
     let (tab, set_tab) = create_signal(ElfTable::SectionHeaders);
-    let table =
-        create_resource(tab,  |tab| async move { fetch_elf_table(tab).await });
+    let table = create_resource(tab, |tab| async move { fetch_elf_table(tab).await });
 
     view! {
         <h2>"Analyzing ELF file"</h2>
@@ -98,18 +95,21 @@ fn ElfPage() -> impl IntoView {
             <button
                 on:click=move |_| set_tab(ElfTable::SectionHeaders)
                 class:selected=move || tab() == ElfTable::SectionHeaders
+                class="tab"
             >
                 "Section Headers"
             </button>
             <button
                 on:click=move |_| set_tab(ElfTable::Symbols)
                 class:selected=move || tab() == ElfTable::Symbols
+                class="tab"
             >
                 "Symbols"
             </button>
             <button
                 on:click=move |_| set_tab(ElfTable::DynSymbols)
                 class:selected=move || tab() == ElfTable::DynSymbols
+                class="tab"
             >
                 "Dynamic Symbols"
             </button>
@@ -145,6 +145,7 @@ fn Table(table: Option<Result<rubilib::table::Table, ServerFnError>>) -> impl In
     if let Some(Ok(table)) = table {
         view! {
             <p>
+            <div style="overflow-x:auto; overflow-y:auto;">
             <table>
                 <tr>
                     {table.headline.iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
@@ -155,6 +156,7 @@ fn Table(table: Option<Result<rubilib::table::Table, ServerFnError>>) -> impl In
                     </tr>
                 }).collect::<Vec<_>>() }
             </table>
+            </div>
             </p>
         }
     } else if let Some(Err(e)) = table {
@@ -162,7 +164,7 @@ fn Table(table: Option<Result<rubilib::table::Table, ServerFnError>>) -> impl In
             <p>{format!("Error: {}", e)}</p>
         }
     } else {
-    view! {
+        view! {
             <p>"Loading table..."</p>
         }
     }
