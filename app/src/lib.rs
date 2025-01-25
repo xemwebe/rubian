@@ -1,8 +1,12 @@
 use crate::error_template::{AppError, ErrorTemplate};
 
-use leptos::*;
-use leptos_meta::*;
-use leptos_router::*;
+use leptos::{either::EitherOf3, prelude::*};
+use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
+use leptos_router::{
+    components::{ParentRoute, Route, Router, Routes},
+    nested_router::Outlet,
+    StaticSegment,
+};
 
 pub mod error_template;
 mod file_info;
@@ -13,6 +17,24 @@ use files::FileUpload;
 
 use serde::{Deserialize, Serialize};
 use std::ops::DerefMut;
+
+pub fn shell(options: LeptosOptions) -> impl IntoView {
+    view! {
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8"/>
+                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <AutoReload options=options.clone()/>
+                <HydrationScripts options/>
+                <MetaTags/>
+            </head>
+            <body>
+                <App/>
+            </body>
+        </html>
+    }
+}
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -26,20 +48,20 @@ pub fn App() -> impl IntoView {
         <Title text="Rubian - binary file analyzer"/>
 
         // content for this welcome page
-        <Router fallback=|| {
-            let mut outside_errors = Errors::default();
-            outside_errors.insert_with_default_key(AppError::NotFound);
-            view! { <ErrorTemplate outside_errors/> }.into_view()
-        }>
+        <Router>
             <main>
-                <Routes>
-                    <Route path="" view=HomePage>
-                        <Route path="/elf" view=ElfPage/>
-                        <Route path="/pe" view=PePage/>
-                        <Route path="/unknown" view=UnknownPage/>
-                        <Route path="" view=|| view!{
+                <Routes fallback=|| {
+                    let mut outside_errors = Errors::default();
+                    outside_errors.insert_with_default_key(AppError::NotFound);
+                    view! { <ErrorTemplate outside_errors/> }.into_view()
+                }>
+                    <ParentRoute path=StaticSegment("") view=HomePage>
+                        <Route path=StaticSegment("elf") view=ElfPage/>
+                        <Route path=StaticSegment("pe") view=PePage/>
+                        <Route path=StaticSegment("unknown") view=UnknownPage/>
+                        <Route path=StaticSegment("") view=|| view!{
                             <p>"Select a file to start analyzing"</p>} />
-                    </Route>
+                    </ParentRoute>
                 </Routes>
             </main>
         </Router>
@@ -52,7 +74,6 @@ fn HomePage() -> impl IntoView {
     view! {
         <h1>"Rubian"</h1>
         <FileUpload/>
-        <Outlet/>
     }
 }
 
@@ -85,8 +106,8 @@ pub async fn fetch_elf_table(table_type: ElfTable) -> Result<rubilib::table::Tab
 /// Renders the home page of your application.
 #[component]
 fn ElfPage() -> impl IntoView {
-    let (tab, set_tab) = create_signal(ElfTable::SectionHeaders);
-    let table = create_resource(tab, |tab| async move { fetch_elf_table(tab).await });
+    let (tab, set_tab) = signal(ElfTable::SectionHeaders);
+    let table = Resource::new(tab, |tab| async move { fetch_elf_table(tab).await });
 
     view! {
         <h2>"Analyzing ELF file"</h2>
@@ -143,29 +164,31 @@ fn UnknownPage() -> impl IntoView {
 #[component]
 fn Table(table: Option<Result<rubilib::table::Table, ServerFnError>>) -> impl IntoView {
     if let Some(Ok(table)) = table {
-        view! {
+        EitherOf3::A(view! {
             <p>
             <div style="overflow-x:auto; overflow-y:auto;">
             <table>
-                <tr>
-                    {table.headline.iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
-                </tr>
-                {table.rows.iter().map(|row| view! {
-                    <tr>
-                        {row.content.iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
-                    </tr>
-                }).collect::<Vec<_>>() }
+            <tr><th>bla1</th><th>bla2</th></tr>
+            <tr><td>dat1</td><td>dat2</td></tr>
+            //     <tr>
+            //         {table.headline.iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
+            //     </tr>
+            //     {table.rows.iter().map(|row| view! {
+            //         <tr>
+            //             {row.content.iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
+            //         </tr>
+            //     }).collect::<Vec<_>>() }
             </table>
             </div>
             </p>
-        }
+        })
     } else if let Some(Err(e)) = table {
-        view! {
+        EitherOf3::B(view! {
             <p>{format!("Error: {}", e)}</p>
-        }
+        })
     } else {
-        view! {
+        EitherOf3::C(view! {
             <p>"Loading table..."</p>
-        }
+        })
     }
 }

@@ -10,11 +10,11 @@ leptos.workspace = true
 leptos_meta.workspace = true
 leptos_router.workspace = true
 leptos_axum = { workspace = true, optional = true }
-web-sys = { version = "0.3.67", features = ["FileList", "File"] }
-server_fn = { version = "0.6", features = ["multipart"] }
+web-sys = { version = "0.3", features = ["FileList", "File"] }
+server_fn = { version = "0.7", features = ["multipart"] }
 rubilib = { path = "../rubilib" }
-once_cell = "1.8"
-log = "0.4.21"
+once_cell = "1.20"
+log = "0.4"
 serde = { version = "1", features = ["derive"] }
 
 http.workspace = true
@@ -23,6 +23,5 @@ thiserror.workspace = true
 
 [features]
 default = []
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = ["leptos/hydrate"]
 ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "dep:leptos_axum"]
-

@@ -1,12 +1,12 @@
 use crate::files::BINARY_STORE;
-use leptos::*;
+use leptos::prelude::*;
 use log::error;
 
 #[component]
 pub fn FileInfo() -> impl IntoView {
     #[server]
     // Update the file info
-    pub async fn update_file_info() -> Result<Vec<(String,String)>, ServerFnError> {
+    pub async fn update_file_info() -> Result<Vec<(String, String)>, ServerFnError> {
         match BINARY_STORE.write() {
             Ok(binary_lock) => {
                 let file_info = binary_lock.file_info();
@@ -20,8 +20,7 @@ pub fn FileInfo() -> impl IntoView {
         }
     }
 
-    let file_info: Resource<(), _> =
-        create_resource(|| (), |_| async move { update_file_info().await });
+    let file_info = Resource::new(|| (), |_| async move { update_file_info().await });
     file_info.refetch();
 
     view! {
