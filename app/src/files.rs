@@ -1,10 +1,11 @@
 use leptos::prelude::*;
+use log::info;
 use once_cell::sync::Lazy;
 use rubilib::{binary::Binary, blob::Blob};
 use serde::{Deserialize, Serialize};
 use server_fn::codec::{MultipartData, MultipartFormData};
 use std::sync::RwLock;
-use web_sys::{wasm_bindgen::JsCast, FormData, HtmlFormElement, SubmitEvent};
+use web_sys::{wasm_bindgen::JsCast, FormData, HtmlFormElement, HtmlInputElement, SubmitEvent};
 
 // Global instance of binary storage
 pub static BINARY_STORE: Lazy<RwLock<Binary>> = Lazy::new(|| RwLock::new(Binary::default()));
@@ -13,51 +14,46 @@ pub static BINARY_STORE: Lazy<RwLock<Binary>> = Lazy::new(|| RwLock::new(Binary:
 pub struct FileStats {
     pub file_name: String,
     pub len: usize,
+    pub file_type: String,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+pub struct UploadedFile {
+    pub data: Vec<u8>,
+    pub file_name: String,
 }
 
 /// Upload functions for files to be analyzed.
-#[server(
- input = MultipartFormData,
-)]
-pub async fn upload_file(data: MultipartData) -> Result<FileStats, ServerFnError> {
-    // `.into_inner()` returns the inner `multer` stream
-    // it is `None` if we call this on the client, but always `Some(_)` on the server, so is safe to
-    // unwrap match binary {
-    let mut data = data.into_inner().unwrap();
-
-    let mut bin_data = Vec::new();
-    let mut file_name = String::new();
-    while let Ok(Some(mut field)) = data.next_field().await {
-        if let Some(name) = field.file_name() {
-            if !file_name.is_empty() && file_name != name {
-                log::error!("Try to upload multiple files!");
-                break;
-            }
-            log::info!("File name is {}", name);
-            file_name = name.to_owned();
-        }
-
-        while let Ok(Some(chunk)) = field.chunk().await {
-            bin_data.extend_from_slice(&chunk);
-        }
-    }
-    let len = bin_data.len();
-    BINARY_STORE.write().unwrap().update(Blob::new(bin_data)?)?;
+#[server]
+pub async fn upload_file(data: UploadedFile) -> Result<FileStats, ServerFnError> {
+    let len = data.data.len();
+    BINARY_STORE
+        .write()
+        .unwrap()
+        .update(Blob::new(data.data)?)?;
     let file_type = BINARY_STORE.read().unwrap().file_type();
     leptos_axum::redirect(&format!("/{file_type}"));
-    Ok(FileStats { file_name, len })
+    Ok(FileStats {
+        file_name: data.file_name,
+        len,
+        file_type,
+    })
 }
 
 #[component]
 pub fn FileUpload() -> impl IntoView {
     let upload_file = ServerAction::<UploadFile>::new();
     let value = upload_file.value();
-    let has_error = move || value.with(|val| matches!(val, Some(Err(_))));
 
     view! {
         <p>Select File to upload and analyze.</p>
             <ActionForm action=upload_file>
-            <input type="file" name="file_to_upload" id="file_to_upload" class="file-input" oninput="this.form.requestSubmit()" />
+            <input type="file" name="file_to_upload" id="file_to_upload" class="file-input" on:change=|ev| {
+                let elem = ev.target().unwrap().unchecked_into::<HtmlInputElement>();
+                info!("elem: {:?}", elem);
+                let files = elem.files();
+                info!("files: {:?}", files);
+            } />
             <label for="file_to_upload" class="custom-button">Choose File</label>
         </ActionForm>
         <p>
@@ -71,6 +67,5 @@ pub fn FileUpload() -> impl IntoView {
                 format!("Error: {:?}", upload_file.value().get())
             }}
         </p>
-
     }
 }

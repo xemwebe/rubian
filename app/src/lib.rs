@@ -4,9 +4,9 @@ use leptos::{either::EitherOf3, prelude::*};
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
     components::{ParentRoute, Route, Router, Routes},
-    nested_router::Outlet,
     StaticSegment,
 };
+use log::info;
 
 pub mod error_template;
 mod file_info;
@@ -40,6 +40,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 pub fn App() -> impl IntoView {
     // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+    info!("where to I run?");
 
     view! {
         <Stylesheet id="leptos" href="/pkg/start-axum-workspace.css"/>
@@ -53,14 +54,14 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| {
                     let mut outside_errors = Errors::default();
                     outside_errors.insert_with_default_key(AppError::NotFound);
-                    view! { <ErrorTemplate outside_errors/> }.into_view()
+                    view! { move || <ErrorTemplate outside_errors/> }.into_view()
                 }>
                     <ParentRoute path=StaticSegment("") view=HomePage>
                         <Route path=StaticSegment("elf") view=ElfPage/>
                         <Route path=StaticSegment("pe") view=PePage/>
                         <Route path=StaticSegment("unknown") view=UnknownPage/>
-                        <Route path=StaticSegment("") view=|| view!{
-                            <p>"Select a file to start analyzing"</p>} />
+                         <Route path=StaticSegment("") view=|| view!{
+                             <p>"Select a file to start analyzing"</p>} />
                     </ParentRoute>
                 </Routes>
             </main>
@@ -71,6 +72,7 @@ pub fn App() -> impl IntoView {
 /// Renders the home page of your application.
 #[component]
 fn HomePage() -> impl IntoView {
+    info!("HomePage");
     view! {
         <h1>"Rubian"</h1>
         <FileUpload/>
