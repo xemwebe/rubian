@@ -77,19 +77,18 @@ pub fn FileUpload() -> impl IntoView {
     let upload_action = Action::new_local(|data: &FormData| store_file(data.clone().into()));
 
     view! {
-        <p>Select File to upload and analyze.</p>
-            <form on:submit=move |ev: SubmitEvent| {
-                ev.prevent_default();
-                let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
-                let form_data = FormData::new_with_form(&target).unwrap();
-                upload_action.dispatch_local(form_data);
-            }>
-                <input type="file" name="file_to_upload" id="file_to_upload" class="file-input" oninput="this.form.requestSubmit()" />
-                <label for="file_to_upload" class="custom-button">Choose File</label>
-            </form>
+        <form on:submit=move |ev: SubmitEvent| {
+            ev.prevent_default();
+            let target = ev.target().unwrap().unchecked_into::<HtmlFormElement>();
+            let form_data = FormData::new_with_form(&target).unwrap();
+            upload_action.dispatch_local(form_data);
+        }>
+            <input type="file" name="file_to_upload" id="file_to_upload" class="file-input" oninput="this.form.requestSubmit()" />
+            <label for="file_to_upload" class="custom-button">Choose File</label>
+        </form>
         <p>
             {move || if upload_action.input_local().get().is_none() && upload_action.value().get().is_none() {
-                "Upload a file.".to_string()
+                "".to_string()
             } else if upload_action.pending().get() {
                 "Uploading...".to_string()
             } else if let Some(Ok(value)) = upload_action.value().get() {

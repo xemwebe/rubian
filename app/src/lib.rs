@@ -3,7 +3,7 @@ use crate::error_template::{AppError, ErrorTemplate};
 use leptos::{either::EitherOf3, prelude::*};
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
-    components::{ParentRoute, Route, Router, Routes},
+    components::{Outlet, ParentRoute, Route, Router, Routes},
     StaticSegment,
 };
 use log::info;
@@ -61,7 +61,7 @@ pub fn App() -> impl IntoView {
                         <Route path=StaticSegment("pe") view=PePage/>
                         <Route path=StaticSegment("unknown") view=UnknownPage/>
                          <Route path=StaticSegment("") view=|| view!{
-                             <p>"Select a file to start analyzing"</p>} />
+                             <p>"Load a file to start analyzing"</p>} />
                     </ParentRoute>
                 </Routes>
             </main>
@@ -76,6 +76,7 @@ fn HomePage() -> impl IntoView {
     view! {
         <h1>"Rubian"</h1>
         <FileUpload/>
+        <Outlet/>
     }
 }
 
@@ -108,6 +109,7 @@ pub async fn fetch_elf_table(table_type: ElfTable) -> Result<rubilib::table::Tab
 /// Renders the home page of your application.
 #[component]
 fn ElfPage() -> impl IntoView {
+    info!("display elf table");
     let (tab, set_tab) = signal(ElfTable::SectionHeaders);
     let table = Resource::new(tab, |tab| async move { fetch_elf_table(tab).await });
 
@@ -140,7 +142,7 @@ fn ElfPage() -> impl IntoView {
         <Transition
             fallback=move || view! { <p>"Select table to show"</p> }
         >
-            <Table table=table.get() />
+            <Table table/>
         </Transition>
     }
 }
@@ -164,7 +166,9 @@ fn UnknownPage() -> impl IntoView {
 
 /// Display a table view
 #[component]
-fn Table(table: Option<Result<rubilib::table::Table, ServerFnError>>) -> impl IntoView {
+fn Table(table: Resource<Result<rubilib::table::Table, ServerFnError>>) -> impl IntoView {
+    info!("Try to display table");
+    let table = table.get();
     if let Some(Ok(table)) = table {
         EitherOf3::A(view! {
             <p>

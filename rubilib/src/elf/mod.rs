@@ -359,7 +359,8 @@ impl ElfHeader {
 
     pub fn info(&self, full: bool) -> Vec<(String, String)> {
         let mut info = Vec::new();
-        info.push(("Type".to_string(), 
+        info.push((
+            "Type".to_string(),
             match self.elf_type {
                 0 => "none",
                 1 => "relocatable",
@@ -369,19 +370,34 @@ impl ElfHeader {
                 0xfe00 | 0xfeff => "OS specific",
                 0xff00 | 0xffff => "processor-specific",
                 _ => "unknown",
-            }.to_string()
+            }
+            .to_string(),
         ));
         info.push(("Entry point".to_string(), format!("0x{:016x}", self.entry)));
         if full {
             info.push(("Machine type".to_string(), format!("{}", self.machine)));
-            info.push(("Program header offset".to_string(), format!("0x{:016x}, size: 0x{:04x}, count: {:6}",
-                self.phoff, self.phentsize, self.phnum
-            )));
-            info.push(("Section header offset".to_string(), format!("0x{:016x}, size: 0x{:04x}, count: {:6}",
-                self.shoff, self.shentsize, self.shnum
-            )));
-            info.push(("Executable header size".to_string(), format!("0x{:04x}", self.ehsize)));
-            info.push(("Section header string offset".to_string(), format!("0x{:04x}", self.shstrndx)));
+            info.push((
+                "Program header offset".to_string(),
+                format!(
+                    "0x{:016x}, size: 0x{:04x}, count: {:6}",
+                    self.phoff, self.phentsize, self.phnum
+                ),
+            ));
+            info.push((
+                "Section header offset".to_string(),
+                format!(
+                    "0x{:016x}, size: 0x{:04x}, count: {:6}",
+                    self.shoff, self.shentsize, self.shnum
+                ),
+            ));
+            info.push((
+                "Executable header size".to_string(),
+                format!("0x{:04x}", self.ehsize),
+            ));
+            info.push((
+                "Section header string offset".to_string(),
+                format!("0x{:04x}", self.shstrndx),
+            ));
             info.push(("Version".to_string(), format!("{}", self.version)));
             info.push(("Flags".to_string(), format!("0x{:016x}", self.flags)));
         }
