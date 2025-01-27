@@ -199,33 +199,4 @@ fn Table(table: Resource<Result<rubilib::table::Table, ServerFnError>>) -> impl 
         {move || display_table}
         </Transition>
     }
-    // let table = table.get();
-    // if let Some(Ok(table)) = table {
-    //     EitherOf3::A(view! {
-    //         <Transition fallback=move || view! { <p>"Select table to show"</p> }>
-    //         <p>
-    //         <div style="overflow-x:auto; overflow-y:auto;">
-    //         <table>
-    //             <tr>
-    //               {table.headline.into_iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
-    //             </tr>
-    //             {table.rows.into_iter().map(|row| view! {
-    //                <tr>
-    //                     {row.content.into_iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
-    //                </tr>
-    //             }).collect::<Vec<_>>() }
-    //         </table>
-    //         </div>
-    //         </p>
-    //         </Transition>
-    //     })
-    // } else if let Some(Err(e)) = table {
-    //     EitherOf3::B(view! {
-    //         <p>{format!("Error: {}", e)}</p>
-    //     })
-    // } else {
-    //     EitherOf3::C(view! {
-    //         <p>"Loading table..."</p>
-    //     })
-    // }
 }
