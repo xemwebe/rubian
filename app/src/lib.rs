@@ -139,11 +139,7 @@ fn ElfPage() -> impl IntoView {
                 "Dynamic Symbols"
             </button>
         </span>
-        <Transition
-            fallback=move || view! { <p>"Select table to show"</p> }
-        >
-            <Table table/>
-        </Transition>
+        <Table table/>
     }
 }
 
@@ -168,33 +164,68 @@ fn UnknownPage() -> impl IntoView {
 #[component]
 fn Table(table: Resource<Result<rubilib::table::Table, ServerFnError>>) -> impl IntoView {
     info!("Try to display table");
-    let table = table.get();
-    if let Some(Ok(table)) = table {
-        EitherOf3::A(view! {
-            <p>
-            <div style="overflow-x:auto; overflow-y:auto;">
-            <table>
-            <tr><th>bla1</th><th>bla2</th></tr>
-            <tr><td>dat1</td><td>dat2</td></tr>
-            //     <tr>
-            //         {table.headline.iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
-            //     </tr>
-            //     {table.rows.iter().map(|row| view! {
-            //         <tr>
-            //             {row.content.iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
-            //         </tr>
-            //     }).collect::<Vec<_>>() }
-            </table>
-            </div>
-            </p>
-        })
-    } else if let Some(Err(e)) = table {
-        EitherOf3::B(view! {
-            <p>{format!("Error: {}", e)}</p>
-        })
-    } else {
-        EitherOf3::C(view! {
-            <p>"Loading table..."</p>
-        })
+    let display_table = move || {
+        let table = table.get();
+        if let Some(Ok(table)) = table {
+            EitherOf3::A(view! {
+
+                <p>
+                <div style="overflow-x:auto; overflow-y:auto;">
+                <table>
+                    <tr>
+                        {table.headline.into_iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
+                    </tr>
+                    {table.rows.into_iter().map(|row| view! {
+                        <tr>
+                            {row.content.into_iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
+                        </tr>
+                    }).collect::<Vec<_>>() }
+                </table>
+                </div>
+                </p>
+            })
+        } else if let Some(Err(e)) = table {
+            EitherOf3::B(view! {
+                <p>{format!("Error: {}", e)}</p>
+            })
+        } else {
+            EitherOf3::C(view! {
+                <p>"Loading table..."</p>
+            })
+        }
+    };
+    view! {
+        <Transition fallback=move || view! { <p>"Select table to show"</p> }>
+        {move || display_table}
+        </Transition>
     }
+    // let table = table.get();
+    // if let Some(Ok(table)) = table {
+    //     EitherOf3::A(view! {
+    //         <Transition fallback=move || view! { <p>"Select table to show"</p> }>
+    //         <p>
+    //         <div style="overflow-x:auto; overflow-y:auto;">
+    //         <table>
+    //             <tr>
+    //               {table.headline.into_iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
+    //             </tr>
+    //             {table.rows.into_iter().map(|row| view! {
+    //                <tr>
+    //                     {row.content.into_iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
+    //                </tr>
+    //             }).collect::<Vec<_>>() }
+    //         </table>
+    //         </div>
+    //         </p>
+    //         </Transition>
+    //     })
+    // } else if let Some(Err(e)) = table {
+    //     EitherOf3::B(view! {
+    //         <p>{format!("Error: {}", e)}</p>
+    //     })
+    // } else {
+    //     EitherOf3::C(view! {
+    //         <p>"Loading table..."</p>
+    //     })
+    // }
 }
