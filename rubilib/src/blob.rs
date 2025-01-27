@@ -43,6 +43,10 @@ impl Blob {
         Ok(blob)
     }
 
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
     pub fn get_u8(&self, offset: usize) -> Result<u8> {
         Ok(*self.data.get(offset).ok_or(BlobError::InvalidSliceSize)?)
     }

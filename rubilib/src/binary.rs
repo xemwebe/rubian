@@ -1,5 +1,6 @@
 use crate::blob::{BinaryType, Blob, BlobError};
 use crate::elf;
+use crate::hex;
 use crate::pe;
 use std::{
     fmt::{self, Display},
@@ -23,7 +24,7 @@ type Result<T> = std::result::Result<T, BinaryError>;
 pub enum Binary {
     Elf(elf::ElfBinary),
     Pe(pe::PeBinary),
-    Unknown,
+    Unknown(hex::HexBinary),
 }
 
 impl Binary {
@@ -43,7 +44,7 @@ impl Binary {
                 let pe_binary = pe::PeBinary::new(blob)?;
                 Ok(Self::Pe(pe_binary))
             }
-            _ => Ok(Self::Unknown),
+            _ => Ok(Self::Unknown(hex::HexBinary::new(blob))),
         }
     }
 
@@ -56,7 +57,7 @@ impl Binary {
         match self {
             Binary::Elf(elf_binary) => elf_binary.header_info(),
             Binary::Pe(pe_binary) => pe_binary.header_info(),
-            Binary::Unknown => {
+            Binary::Unknown(_) => {
                 vec![("Ident".to_string(), "Unknown binary".to_string())]
             }
         }
@@ -66,7 +67,7 @@ impl Binary {
         match self {
             Binary::Elf(_) => "elf".to_string(),
             Binary::Pe(_) => "pe".to_string(),
-            Binary::Unknown => "unknown".to_string(),
+            Binary::Unknown(_) => "unknown".to_string(),
         }
     }
 }
@@ -79,13 +80,13 @@ impl Display for Binary {
                 write!(f, "{}", elf_binary.ident())
             }
             Binary::Pe(_) => write!(f, "pe"),
-            Binary::Unknown => write!(f, "unknown"),
+            Binary::Unknown(_) => write!(f, "unknown"),
         }
     }
 }
 
 impl Default for Binary {
     fn default() -> Self {
-        Self::Unknown
+        Self::Unknown(hex::HexBinary::new(Blob::default()))
     }
 }

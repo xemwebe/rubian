@@ -152,11 +152,65 @@ fn PePage() -> impl IntoView {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+pub struct HexTableSettings {
+    bytes_per_line: u32,
+}
+
+impl HexTableSettings {
+    fn set_bytes_per_line(&mut self, bytes_per_line: u32) {
+        self.bytes_per_line = bytes_per_line;
+    }
+}
+
+impl Default for HexTableSettings {
+    fn default() -> Self {
+        Self { bytes_per_line: 16 }
+    }
+}
+
+#[server]
+pub async fn fetch_hex_table(
+    hex_settings: HexTableSettings,
+) -> Result<rubilib::table::Table, ServerFnError> {
+    let mut binary = files::BINARY_STORE.write().unwrap();
+    match binary.deref_mut() {
+        rubilib::binary::Binary::Unknown(binary) => {
+            let table = binary.as_hex_table(hex_settings.bytes_per_line)?;
+            Ok(table)
+        }
+        _ => {
+            log::error!("Binary has invalid type");
+            Err(ServerFnError::from(AppError::NotFound))
+        }
+    }
+}
+
 /// Renders the home page of your application.
 #[component]
 fn UnknownPage() -> impl IntoView {
+    info!("Unknown format, show hex table");
+    let (hextab, set_hextab) = signal(HexTableSettings::default());
+    let table = Resource::new(
+        hextab,
+        |hextab| async move { fetch_hex_table(hextab).await },
+    );
+
     view! {
-        <p>"The file format is not supported"</p>
+        <h2>"HEX table"</h2>
+        <FileInfo/>
+        <span class="settings">
+            <label for="bytes_per_line">Bytes per line:</label>
+            <input type="number" id="bytes_per_line"
+                on:change=move |v| {
+                    set_hextab.update(|ht| {
+                        ht.set_bytes_per_line(v.as_string().unwrap().parse::<u32>().unwrap_or(16));
+                    });
+                }
+                class="int_param"
+            value="16"/>
+        </span>
+        <Table table/>
     }
 }
 

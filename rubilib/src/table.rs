@@ -9,6 +9,7 @@ pub enum TableType {
     ElfSectionHeader,
     ElfSymbols,
     ElfDynamicSymbols,
+    Hex,
 }
 
 impl Display for TableType {
@@ -17,6 +18,7 @@ impl Display for TableType {
             ElfSectionHeader => write!(f, "ELF section headers"),
             ElfSymbols => write!(f, "ELF symbol table"),
             ElfDynamicSymbols => write!(f, "ELF dynamic symbols table"),
+            Hex => write!(f, "HEX table"),
         }
     }
 }
