@@ -27,16 +27,18 @@ pub fn FileInfo() -> impl IntoView {
         <Suspense fallback=|| view!{ <p>"Loading..."</p> } >
             <div>
                 <table>
-                    <tr><th><strong>Field</strong></th><th><strong>Value</strong></th></tr>
-                    {move || {
-                        file_info.get().map(
-                            |info| {
-                                {info.unwrap().into_iter()
-                                    .map(|(key, value)| view! { <tr><td>{key}</td><td>{value}</td></tr>})
-                                    .collect::<Vec<_>>()}
-                            }
-                        )
-                    }}
+                    <tbody>
+                        <tr><th><strong>Field</strong></th><th><strong>Value</strong></th></tr>
+                        {move || {
+                            file_info.get().map(
+                                |info| {
+                                    {info.unwrap().into_iter()
+                                        .map(|(key, value)| view! { <tr><td>{key}</td><td>{value}</td></tr>})
+                                        .collect::<Vec<_>>()}
+                                }
+                            )
+                        }}
+                    </tbody>
                 </table>
             </div>
        </Suspense>

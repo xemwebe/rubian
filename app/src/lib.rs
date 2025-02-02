@@ -202,9 +202,9 @@ fn UnknownPage() -> impl IntoView {
         <span class="settings">
             <label for="bytes_per_line">Bytes per line:</label>
             <input type="number" id="bytes_per_line"
-                on:change=move |v| {
+                on:change:target=move |v| {
                     set_hextab.update(|ht| {
-                        ht.set_bytes_per_line(v.as_string().unwrap().parse::<u32>().unwrap_or(16));
+                        ht.set_bytes_per_line(v.target().value().parse::<u32>().unwrap_or(16));
                     });
                 }
                 class="int_param"
@@ -222,21 +222,20 @@ fn Table(table: Resource<Result<rubilib::table::Table, ServerFnError>>) -> impl 
         let table = table.get();
         if let Some(Ok(table)) = table {
             EitherOf3::A(view! {
-
-                <p>
                 <div style="overflow-x:auto; overflow-y:auto;">
                 <table>
-                    <tr>
-                        {table.headline.into_iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
-                    </tr>
-                    {table.rows.into_iter().map(|row| view! {
+                    <tbody>
                         <tr>
-                            {row.content.into_iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
+                            {table.headline.into_iter().map(|header| view! { <th>{header}</th> }).collect::<Vec<_>>() }
                         </tr>
-                    }).collect::<Vec<_>>() }
+                        {table.rows.into_iter().map(|row| view! {
+                            <tr>
+                                {row.content.into_iter().map(|cell| view! { <td>{cell}</td> }).collect::<Vec<_>>() }
+                                </tr>
+                        }).collect::<Vec<_>>() }
+                    </tbody>
                 </table>
                 </div>
-                </p>
             })
         } else if let Some(Err(e)) = table {
             EitherOf3::B(view! {
@@ -249,8 +248,8 @@ fn Table(table: Resource<Result<rubilib::table::Table, ServerFnError>>) -> impl 
         }
     };
     view! {
-        <Transition fallback=move || view! { <p>"Select table to show"</p> }>
+        <Suspense fallback=move || view! { <p>"Preparing table..."</p> }>
         {move || display_table}
-        </Transition>
+        </Suspense>
     }
 }
