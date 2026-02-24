@@ -60,6 +60,7 @@ pub fn App() -> impl IntoView {
                         <Route path=StaticSegment("elf") view=ElfPage/>
                         <Route path=StaticSegment("pe") view=PePage/>
                         <Route path=StaticSegment("unknown") view=UnknownPage/>
+                        <Route path=StaticSegment("asn1") view=Asn1Page/>
                          <Route path=StaticSegment("") view=|| view!{
                              <p>"Load a file to start analyzing"</p>} />
                     </ParentRoute>
@@ -183,6 +184,46 @@ pub async fn fetch_hex_table(
             log::error!("Binary has invalid type");
             Err(ServerFnError::from(AppError::NotFound))
         }
+    }
+}
+
+#[server]
+pub async fn fetch_asn1_content() -> Result<String, ServerFnError> {
+    let binary = files::BINARY_STORE.read().unwrap();
+    match binary.asn1_readable() {
+        Some(Ok(content)) => Ok(content),
+        Some(Err(e)) => {
+            log::error!("ASN.1 parse error: {e}");
+            Err(ServerFnError::ServerError(e.to_string()))
+        }
+        None => {
+            log::error!("Binary is not an ASN.1 file");
+            Err(ServerFnError::from(AppError::NotFound))
+        }
+    }
+}
+
+/// Renders the ASN.1 page.
+#[component]
+fn Asn1Page() -> impl IntoView {
+    info!("ASN.1 format, show parsed content");
+    let content = Resource::new(|| (), |_| async move { fetch_asn1_content().await });
+
+    view! {
+        <h2>"Analyzing ASN.1 file"</h2>
+        <FileInfo/>
+        <Suspense fallback=move || view! { <p>"Parsing ASN.1..."</p> }>
+            {move || {
+                content.get().map(|result| match result {
+                    Ok(text) => view! {
+                        <pre class="asn1-content">{text}</pre>
+                    }.into_any(),
+                    Err(e) => view! {
+                        <p class="error">{format!("Error: {}", e)}</p>
+                    }.into_any(),
+                })
+            }}
+        </Suspense>
     }
 }
 

@@ -1,4 +1,5 @@
 use crate::elf::ElfIdent;
+use asn1_rs::FromDer;
 use std::ffi::CStr;
 use std::fmt::{self, Display};
 use thiserror::Error;
@@ -103,6 +104,10 @@ impl Blob {
         CStr::from_bytes_until_nul(&self.data[offset..]).map_err(|_| BlobError::InvalidSliceSize)
     }
 
+    pub fn raw_bytes(&self) -> &[u8] {
+        &self.data
+    }
+
     pub fn get_cname(&self, offset: Option<usize>) -> Result<String> {
         match offset {
             Some(name_addr) => {
@@ -139,6 +144,15 @@ impl Blob {
             }
         }
 
+        // ASN.1 DER/BER files typically start with a SEQUENCE (0x30) or SET (0x31) tag.
+        // Attempt a full DER parse to confirm it is valid ASN.1.
+        if matches!(self.data.first(), Some(0x30) | Some(0x31)) {
+            if asn1_rs::Any::from_der(&self.data).is_ok() {
+                self.bin_type = BinaryType::Asn1;
+                return Ok(());
+            }
+        }
+
         self.bin_type = BinaryType::Unknown;
 
         Ok(())
@@ -148,6 +162,7 @@ impl Blob {
 pub enum BinaryType {
     Elf(ElfIdent),
     Pe,
+    Asn1,
     Unknown,
 }
 
@@ -159,6 +174,7 @@ impl Display for BinaryType {
                 write!(f, "{elf_ident}")
             }
             BinaryType::Pe => write!(f, "pe"),
+            BinaryType::Asn1 => write!(f, "asn1"),
             BinaryType::Unknown => write!(f, "unknown"),
         }
     }

@@ -29,3 +29,42 @@ input[type="file"] {
 td {
     padding-right: 20px;
 }
+
+.asn1-content {
+    background-color: #111;
+    color: #adff2f;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 16px;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 75vh;
+    font-family: "Courier New", monospace;
+    font-size: 0.9em;
+    line-height: 1.5;
+    white-space: pre;
+    tab-size: 2;
+}
+
+.asn1-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.asn1-content::-webkit-scrollbar-track {
+    background: #222;
+}
+
+.asn1-content::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+}
+
+.error {
+    color: #ff4444;
+    font-weight: bold;
+    padding: 8px;
+    border: 1px solid #ff4444;
+    border-radius: 4px;
+    background-color: #1a0000;
+}

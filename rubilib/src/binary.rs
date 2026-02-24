@@ -1,3 +1,4 @@
+use crate::asn1;
 use crate::blob::{BinaryType, Blob, BlobError};
 use crate::elf;
 use crate::hex;
@@ -17,6 +18,8 @@ pub enum BinaryError {
     NoElfBinary(#[from] elf::ElfError),
     #[error("corrupt binary blob")]
     BlobCorrupted(#[from] BlobError),
+    #[error("corrupt asn1 binary")]
+    Asn1Error(#[from] asn1::Asn1Error),
 }
 
 type Result<T> = std::result::Result<T, BinaryError>;
@@ -24,6 +27,7 @@ type Result<T> = std::result::Result<T, BinaryError>;
 pub enum Binary {
     Elf(elf::ElfBinary),
     Pe(pe::PeBinary),
+    Asn1(asn1::Asn1Binary),
     Unknown(hex::HexBinary),
 }
 
@@ -44,6 +48,7 @@ impl Binary {
                 let pe_binary = pe::PeBinary::new(blob)?;
                 Ok(Self::Pe(pe_binary))
             }
+            BinaryType::Asn1 => Ok(Self::Asn1(asn1::Asn1Binary::new(blob))),
             _ => Ok(Self::Unknown(hex::HexBinary::new(blob))),
         }
     }
@@ -57,6 +62,7 @@ impl Binary {
         match self {
             Binary::Elf(elf_binary) => elf_binary.header_info(),
             Binary::Pe(pe_binary) => pe_binary.header_info(),
+            Binary::Asn1(asn1_binary) => asn1_binary.header_info(),
             Binary::Unknown(_) => {
                 vec![("Ident".to_string(), "Unknown binary".to_string())]
             }
@@ -67,7 +73,18 @@ impl Binary {
         match self {
             Binary::Elf(_) => "elf".to_string(),
             Binary::Pe(_) => "pe".to_string(),
+            Binary::Asn1(_) => "asn1".to_string(),
             Binary::Unknown(_) => "unknown".to_string(),
+        }
+    }
+
+    /// Returns the parsed ASN.1 content as a human-readable string.
+    /// Returns `None` if the binary is not of ASN.1 type.
+    pub fn asn1_readable(&self) -> Option<Result<String>> {
+        if let Binary::Asn1(asn1_binary) = self {
+            Some(asn1_binary.to_readable_string().map_err(BinaryError::from))
+        } else {
+            None
         }
     }
 }
@@ -80,6 +97,7 @@ impl Display for Binary {
                 write!(f, "{}", elf_binary.ident())
             }
             Binary::Pe(_) => write!(f, "pe"),
+            Binary::Asn1(_) => write!(f, "asn1"),
             Binary::Unknown(_) => write!(f, "unknown"),
         }
     }

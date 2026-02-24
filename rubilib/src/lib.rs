@@ -1,3 +1,4 @@
+pub mod asn1;
 pub mod binary;
 pub mod blob;
 pub mod elf;
