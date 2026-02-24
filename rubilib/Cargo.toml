@@ -12,7 +12,7 @@ keywords = ["binary"]
 categories = ["library", "parsing"]
 
 [dependencies]
-strum = { version = "0.26", features = ["derive"] }
+strum = { version = "0.28", features = ["derive"] }
 thiserror = "2.0"
 env_logger = { version = "0.11", default-features = false, features = [
     "auto-color",

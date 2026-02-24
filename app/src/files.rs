@@ -5,7 +5,8 @@ use rubilib::{binary::Binary, blob::Blob};
 use serde::{Deserialize, Serialize};
 use server_fn::codec::{MultipartData, MultipartFormData};
 use std::sync::RwLock;
-use web_sys::{wasm_bindgen::JsCast, FormData, HtmlFormElement, SubmitEvent};
+use wasm_bindgen::JsCast;
+use web_sys::FormData;
 
 // Global instance of binary storage
 pub static BINARY_STORE: Lazy<RwLock<Binary>> = Lazy::new(|| RwLock::new(Binary::default()));
@@ -76,10 +77,22 @@ pub async fn store_file(data: MultipartData) -> Result<FileStats, ServerFnError>
 pub fn FileUpload() -> impl IntoView {
     let upload_action = Action::new_local(|data: &FormData| store_file(data.clone().into()));
 
+    let on_submit = move |ev: leptos::ev::SubmitEvent| {
+        ev.prevent_default();
+        let form = ev
+            .target()
+            .unwrap()
+            .unchecked_into::<web_sys::HtmlFormElement>();
+        let form_data = FormData::new_with_form(&form).unwrap();
+        upload_action.dispatch_local(form_data);
+    };
+
     view! {
-         <div>
-        <input type="file" name="file_to_upload" id="file_to_upload" class="file-input" oninput="this.form.requestSubmit()" />
-        <label for="file_to_upload" class="custom-button">Choose File</label>
-     </div>
+        <form enctype="multipart/form-data" on:submit=on_submit>
+            <div>
+                <input type="file" name="file_to_upload" id="file_to_upload" class="file-input" oninput="this.form.requestSubmit()" />
+                <label for="file_to_upload" class="custom-button">Choose File</label>
+            </div>
+        </form>
     }
 }
